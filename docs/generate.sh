@@ -38,9 +38,9 @@ for arg in "$@"; do
 done
 
 # HTML report file
-REPORT_FILE="$ENV_NAME_statistics.html"
+REPORT_FILE="${ENV_NAME}_statistics.html"
 # Rotating history file
-HISTORY_FILE="$ENV_NAME_statistics_history.log"
+HISTORY_FILE="${ENV_NAME}_statistics_history.log"
 
 # Infinite loop running every five minutes
 while true; do
@@ -149,7 +149,7 @@ while true; do
   percentage_metrics_server=$(awk -v a="$metrics_server_replicas" 'BEGIN { printf "%d", (a > 0 ? 100 : 100) }')
   percentage_kube_dns=$(awk -v a="$kube_dns_replicas" 'BEGIN { printf "%d", (a > 0 ? 100 : 100) }')
 
-  green "Saving log history ..."
+  green "Saving log history $HISTORY_FILE ..."
   # Save the current state in the rotating history file
   echo "$(date +%Y-%m-%dT%H:%M:%S)|$total_deployments|$deployments_with_replicas|$percentage_with_replicas|$deployments_with_zero_replicas|$percentage_with_zero_replicas|$deployments_with_exact_replicas|$percentage_with_exact_replicas|$pods_with_crashloopbackoff|$percentage_with_crashloopbackoff|$pods_recently_restarted|$percentage_recently_restarted|$metrics_server_replicas|$percentage_metrics_server|$kube_dns_replicas|$percentage_kube_dns" >> "$HISTORY_FILE"
 
