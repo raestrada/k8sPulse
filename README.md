@@ -47,7 +47,7 @@ To set up Git commit functionality for emergency publication:
 ### Sample Output
 
 Below is an example screenshot of the report layout (scaled down for brevity):
-<img src="https://res.cloudinary.com/dyknhuvxt/image/upload/v1730572916/Captura_de_pantalla_2024-11-02_a_la_s_15.41.38_m3rwa8.png" alt="Sample Report Screenshot" style="max-width: 600px; height: auto;">
+<img src="https://res.cloudinary.com/dyknhuvxt/image/upload/v1730648635/Captura_de_pantalla_2024-11-03_a_la_s_12.43.41_s2modk.png" alt="Sample Report Screenshot" style="max-width: 600px; height: auto;">
 
 ---
 

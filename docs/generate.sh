@@ -251,25 +251,102 @@ while true; do
 
   report+="</div>"
 
-  green "Generate events section ..."
-  # Event section with scroll
-  report+="<div class='events'><h3>Unusual Events</h3>"
-  unusual_events=$(kubectl get events --all-namespaces | grep -v "Normal" | awk '{print $1, $2, $5, substr($0, index($0,$6))}' | sort | uniq -c | sort -nr | head -50)
-  green "Events read ..."
+  blue "Generating events ..."
+  # Events and Nodes Issues Sections Container
+  report+="<div class='events-nodes-container' style='display: flex; gap: 20px; width: 100%; align-items: flex-start;'>"
+
+  # Events Section
+  report+="<div class='events' style='flex: 1; max-height: 400px; overflow-y: auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);'><h3>Unusual Events</h3>"
+  unusual_events=$(kubectl get events --all-namespaces | \
+  grep -v -E "^NAMESPACE|Normal" | \
+  awk '{print $1, $2, $5, $6, substr($0, index($0,$7))}' | \
+  sort -k4,4 -k5,5 | \
+  awk '!seen[$4,$5]++ {count[$4,$5] = 1; time[$4,$5] = $2; namespace[$4,$5] = $4; kind[$4,$5] = $5; first_col[$4,$5] = $1; rest[$4,$5] = substr($0, index($0,$7))} seen[$4,$5]++ {count[$4,$5]++} \
+  END {for (key in count) print count[key], time[key], namespace[key], kind[key], first_col[key], rest[key]}' | \
+  sort -k1,1nr | \
+  awk '{print "[" $1 "] [" $2 "] [" $3 "] [" $4 "] [" $5 "] " substr($0, index($0,$6))}' | \
+  head -50)
 
   if [ -z "$unusual_events" ]; then
     report+="<div class='event' style='color:red;'>No unusual events found.</div>"
   else
-    while IFS= read -r event; do
-      count=$(echo "$event" | awk '{print $1}')
-      namespace=$(echo "$event" | awk '{print $2}')
-      event_type=$(echo "$event" | awk '{print $3}')
-      message=$(echo "$event" | cut -d' ' -f4-)
-      event_class="event event-$(echo $event_type | tr '[:upper:]' '[:lower:]')"
-      report+="<div class='$event_class'><strong>[$namespace]</strong> ($count times): $message</div>"
+    while IFS= read -r event; do 
+      count=$(echo "$event" | awk '{print $1}' | tr -d '[]')
+      time=$(echo "$event" | awk '{print $2}' | tr -d '[]')
+      kind=$(echo "$event" | awk '{print $3}' | tr -d '[]')
+      first_col=$(echo "$event" | awk '{print $4}' | tr -d '[]')
+      namespace=$(echo "$event" | awk '{print $5}' | tr -d '[]')
+      message=$(echo "$event" | cut -d' ' -f6-)
+      event_class="event event-$(echo $kind | tr '[:upper:]' '[:lower:]')"
+      color=""
+      case "$kind" in
+        "Warning") color="red" ;;
+        "Normal") color="green" ;;
+        "Failed") color="orange" ;;
+        "SuccessfulCreate") color="blue" ;;
+        *) color="purple" ;;
+      esac
+      report+="<div class='$event_class' style='border: 2px solid $color; padding: 10px; margin: 5px; background-color: #f0f0f0;'>"
+      report+="<strong style='color: $color;'>[$kind]</strong> <strong>[$namespace]</strong> <span style='font-weight: bold;'>($count times)</span> <em>[$time]</em>: <em>$message</em>"
+      report+="<br><small>First occurrence: [$first_col]</small>"
+      report+="</div>"
     done <<< "$unusual_events"
   fi
   report+="</div>"
+
+  blue "Get nodes ..."
+  # Nodes with Issues Section
+report+="<div class='nodes' style='flex: 1; max-height: 400px; overflow-y: auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);'><h3>Nodes with Issues</h3>"
+nodes_with_issues=$(kubectl get nodes --no-headers | awk '$2 != "Ready" {print $1, $2}')
+
+if [ -z "$nodes_with_issues" ]; then
+  report+="<div class='event' style='color:green;'>All nodes are healthy.</div>"
+else
+  while IFS= read -r node_issue; do
+    node_name=$(echo "$node_issue" | awk '{print $1}')
+    node_status=$(echo "$node_issue" | awk '{print $2}')
+    
+    # Obtener la descripción detallada del nodo en formato YAML y filtrar secciones no deseadas con yq
+    node_description=$(kubectl get node "$node_name" -o yaml | yq 'del(.metadata.labels, .metadata.annotations, .metadata.creationTimestamp)')
+
+    report+="<div class='event' style='border: 2px solid red; padding: 10px; margin: 5px; background-color: #f0f0f0;'>"
+    report+="<strong style='color: red;'>Node: [$node_name]</strong> - Status: <em>$node_status</em>"
+    
+    # Botón para colapsar/expandir la descripción
+    report+="<button onclick='toggleDescription(\"$node_name\")' style='margin-right: 10px; background: none; border: none; font-size: 1.2em; cursor: pointer;'>▶</button>"
+
+    # Agregar la descripción filtrada del nodo en un div colapsable, utilizando highlight.js para el formato
+    report+="<div id='desc-$node_name' class='node-description' style='display: none; margin-top: 10px; padding: 10px; background-color: #e9e9e9; border-radius: 5px; font-size: 0.9em;'>"
+    report+="<pre><code class='yaml'>$node_description</code></pre>"
+    report+="</div>"
+
+    report+="</div>"
+  done <<< "$nodes_with_issues"
+fi
+report+="</div>"
+
+# JavaScript para colapsar/expandir la descripción del nodo
+report+="<script>
+function toggleDescription(nodeId) {
+  var descElement = document.getElementById('desc-' + nodeId);
+  var buttonElement = descElement.previousElementSibling;
+  if (descElement.style.display === 'none') {
+    descElement.style.display = 'block';
+    buttonElement.innerHTML = '▼'; // Cambiar el icono cuando se expande
+  } else {
+    descElement.style.display = 'none';
+    buttonElement.innerHTML = '▶'; // Cambiar el icono cuando se colapsa
+  }
+}
+</script>"
+
+# Incluir highlight.js para resaltar el YAML con colores
+report+="<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/default.min.css'>"
+report+="<script src='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js'></script>"
+report+="<script>hljs.highlightAll();</script>"
+
+# Close the events and nodes container
+report+="</div>"
 
   green "Generate line charts ..."
 
@@ -378,7 +455,7 @@ while true; do
 
   report+="</table>"
 
-  npx prettier . --write
+  #npx prettier . --write
 
   # Save report to HTML file
   echo "$report" > "$REPORT_FILE"
@@ -391,5 +468,6 @@ while true; do
   fi
 
   # Wait five minutes before the next run
+  yellow "Wait $INTERVAL ..."
   sleep $INTERVAL
 done
