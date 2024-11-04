@@ -24,9 +24,8 @@ k8sPulse is an open-source monitoring tool for emergency scenarios, providing a 
 
 ### Requirements
 
-- `kubectl` configured and connected to your Kubernetes cluster.
-- `git` for optional commit/push functionality.
-- `jq`, `yq`, `awk`, `sort`, `uniq` for script operations.
+- `kubeconfig` configured and connected to your Kubernetes cluster.
+- `python3` to run cli.
 - OpenAI API key for AI-powered recommendations (optional).
 
 ### Installing k8sPulse with pipx
