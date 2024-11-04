@@ -1,92 +1,164 @@
-# Quick Emergency Kubernetes Report
+# ![k8sPulse Logo](https://res.cloudinary.com/dyknhuvxt/image/upload/v1730740391/k8spulse_axrf38.png) k8sPulse: Quick Emergency Kubernetes Report
 
 **An Experimental Tool, 100% Made with ChatGPT**
 
-> **Note**: This tool is a technical experiment created entirely with ChatGPT. It’s not optimized for speed or efficiency and does not replace real-time monitoring solutions like Grafana, New Relic, or Datadog. However, it’s designed as a fallback option for emergency scenarios, especially when advanced cloud-native scaling tools (e.g., CAST AI, Karpenter, GKE’s autoscaler) may fail. This report generator provides a simple way to retrieve critical insights from a Kubernetes cluster with only kubectl access.
+> **Note**: k8sPulse is a technical experiment built entirely with ChatGPT. It’s not optimized for speed or efficiency and does not replace real-time monitoring solutions like Grafana, New Relic, or Datadog. Instead, it’s designed as a fallback option for emergency scenarios when advanced cloud-native scaling tools (e.g., CAST AI, Karpenter, GKE’s autoscaler) may fail. This tool provides critical insights into a Kubernetes cluster with only `kubectl` access.
 
 ---
 
-## What is This?
+## Overview
 
-"Quick Emergency Kubernetes Report" is a script to generate an HTML report summarizing key Kubernetes metrics (deployments, replicas, events, etc.). It requires only kubectl access to the cluster and can run locally or push changes to GitHub Pages for sharing in real time.
+k8sPulse is an open-source monitoring tool for emergency scenarios, providing a quick Kubernetes cluster health overview when only `kubectl` is available. Leveraging the Python Kubernetes native client and OpenAI, it generates insightful and actionable recommendations to help resolve issues efficiently.
 
-**Disclaimer:** Outside of an emergency, this script is inefficient and unnecessary. Use real-time tools for routine monitoring.
+![k8sPulse Screenshot](https://res.cloudinary.com/dyknhuvxt/image/upload/v1730680710/Captura_de_pantalla_2024-11-03_a_la_s_21.38.19_l0fgnc.png)
 
-## Usage
+---
+
+## Features
+
+- **Fallback Kubernetes Monitoring:** Designed for emergencies where only `kubectl` access is possible.
+- **OpenAI-Powered Recommendations:** Generates actionable cluster health suggestions using OpenAI's GPT models.
+- **Native Kubernetes Python Client:** Uses Kubernetes Python client for direct and reliable cluster interaction.
+
+## Installation Guide
 
 ### Requirements
 
 - `kubectl` configured and connected to your Kubernetes cluster.
-- `git` for the optional commit/push functionality.
+- `git` for optional commit/push functionality.
 - `jq`, `yq`, `awk`, `sort`, `uniq` for script operations.
-- OpenAI API key for generating AI-powered recommendations (optional).
+- OpenAI API key for AI-powered recommendations (optional).
 
-### Running the Script Locally
+### Installing k8sPulse with pipx
 
-To use the report generator locally, run:
+To install **k8sPulse** using `pipx`, run:
 
-```bash
-./docs/generate.sh
+```sh
+pipx install git+https://github.com/raestrada/k8sPulse.git@v0.1.0
 ```
 
-By default, the script generates an HTML report called `staging_statistics.html` that can be opened in a browser. It updates every 5 minutes to keep metrics current.
+This command installs the latest tagged version (`v0.1.0`) of k8sPulse.
 
-### Enabling Emergency Mode with Git Commit
+### Installing pipx
 
-To set up Git commit functionality for emergency publication:
+#### On Linux and macOS
 
-1. Run the script with the `--git-commit` flag:
-   ```bash
-   ./docs/generate.sh --git-commit
-   ```
-2. Set up a GitHub repository and configure GitHub Pages to serve from the `docs` folder:
+To install `pipx` on Linux or macOS, run:
 
-   - In your repository, go to **Settings > Pages**.
-   - Under **Source**, select the branch and set the folder to `/docs`.
+```sh
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+```
 
-3. The HTML report will now be published under your GitHub Pages URL.
+Ensure `python3` and `pip` are installed on your system.
 
-#### Optional Flags
+#### On Windows
 
-- **`--env-name`**: Specify an environment name (default: `staging`).
-- **`--interval`**: Set the refresh interval in seconds (default: `300`).
-- **`--use-ai`**: Enable AI recommendations from OpenAI based on the generated report.
+To install `pipx` on Windows, use the following command in PowerShell:
+
+```sh
+python -m pip install --user pipx
+python -m pipx ensurepath
+```
+
+After installing `pipx`, close and reopen your terminal or run `refreshenv` if using the Windows Command Prompt.
+
+## Usage
+
+Once installed, k8sPulse allows you to generate Kubernetes cluster reports and monitor your environment.
+
+### Generating a Report
+
+To generate a report with default settings, use:
+
+```sh
+k8spulse
+```
+
+This command generates a Kubernetes cluster report for the default `staging` environment.
+
+### Available Options
+
+- `--env-name`
+  - **Description:** Specify the environment name for the report.
+  - **Default Value:** `staging`
+  - **Usage:**
+    
+    ```sh
+    k8spulse --env-name production
+    ```
+
+- `--interval`
+  - **Description:** Set the interval (in seconds) between report generations.
+  - **Default Value:** `300` (5 minutes)
+  - **Usage:**
+    
+    ```sh
+    k8spulse --interval 600
+    ```
+
+- `--use-ai`
+  - **Description:** Use OpenAI to generate recommendations based on the report.
+  - **Usage:**
+    
+    ```sh
+    k8spulse --use-ai
+    ```
+
+- `--git-commit`
+  - **Description:** Automatically commit and push the generated report to the Git repository.
+  - **Usage:**
+    
+    ```sh
+    k8spulse --git-commit
+    ```
+
+- `--gpt-model`
+  - **Description:** Specify which GPT model to use for recommendations.
+  - **Default Value:** `got-4o`
+  - **Usage:**
+    
+    ```sh
+    k8spulse --gpt-model got-4o
+    ```
 
 ### Enabling AI Recommendations
 
-To receive AI-powered recommendations on improving the Kubernetes cluster health, you can use the `--use-ai` flag:
+To receive AI-powered recommendations for Kubernetes cluster health:
 
 1. Ensure you have an [OpenAI API key](https://platform.openai.com/account/api-keys) set as an environment variable:
-   ```bash
+   
+   ```sh
    export OPENAI_API_KEY=your_openai_api_key_here
    ```
-2. Run the script with the AI option enabled:
-   ```bash
-   ./docs/generate.sh --use-ai
+
+2. Run the command with the `--use-ai` flag:
+   
+   ```sh
+   k8spulse --use-ai
    ```
-3. The script will generate recommendations based on the Kubernetes report and insert them into the HTML file. These recommendations are generated using OpenAI's API and provide actionable insights for cluster health improvements.
 
-### Sample Output
+3. Recommendations will be generated and included in the HTML report.
 
-Below is an example screenshot of the report layout (scaled down for brevity):
-<img src="https://res.cloudinary.com/dyknhuvxt/image/upload/v1730680710/Captura_de_pantalla_2024-11-03_a_la_s_21.38.19_l0fgnc.png" alt="Sample Report Screenshot" style="max-width: 600px; height: auto;">
+## Generating the HTML Report
 
----
+After generating a report, open the generated `staging_statistics.html` file in your browser. The report provides a visual overview of the Kubernetes cluster, including metrics, events, and insights.
 
-## FAQ
+### Index.html Generation for GitHub Pages
 
-### Why use this script?
+An `index.html` file is automatically generated to list all available reports. This allows easy hosting of reports using GitHub Pages for sharing and quick access.
 
-While tools like Grafana and New Relic offer better functionality, they may not be accessible during critical failures. This script provides a quick, git-based workaround using only `kubectl` and `git`.
+#### Using GitHub Pages
 
-### Is this script optimized?
+1. Push the generated `index.html` and report files to your GitHub repository.
+2. In your repository settings, go to **Settings > Pages**.
+3. Under **Source**, select the branch and set the folder to `/docs`.
+4. Your reports will now be accessible at your GitHub Pages URL.
 
-No, this is an experimental tool with limited functionality. It’s intended solely as an emergency fallback and has limitations in speed and efficiency.
+## Contributing
 
-### How do AI recommendations work?
+Contributions are welcome! Visit our [GitHub repository](https://github.com/raestrada/k8sPulse) for more details on how to get started and our contributing guidelines.
 
-If enabled, the script sends the generated Kubernetes report to OpenAI's API, which then analyzes it and returns recommendations to improve the cluster's health. These suggestions are embedded directly into the report for easy review.
+## License
 
----
-
-Feel free to contribute any insights, but remember, this project is intended as an experiment in using AI for coding solutions!
+k8sPulse is open source and available under the MIT License.
