@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>k8spulse Dashboard - Overview</title>
+    <link rel="icon" href="https://res.cloudinary.com/dyknhuvxt/image/upload/c_thumb,w_200,g_face/v1730740391/k8spulse_axrf38.png">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f9fafb;
+            color: #334e68;
+            padding: 20px;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        header img {
+            width: 50px;
+            height: 50px;
+        }
+        header h1 {
+            color: #0f766e;
+            font-size: 2em;
+            font-weight: bold;
+        }
+        .description {
+            max-width: 800px;
+            line-height: 1.6;
+            font-size: 1.1em;
+            margin-bottom: 40px;
+        }
+        .reports {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .report-link {
+            background: #ffffff;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+        .report-link:hover {
+            background-color: #f1f5f9;
+        }
+        .report-link a {
+            text-decoration: none;
+            color: #0f766e;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="https://res.cloudinary.com/dyknhuvxt/image/upload/v1730740391/k8spulse_axrf38.png" alt="k8spulse logo">
+        <h1>k8spulse Dashboard</h1>
+    </header>
+
+    <div class="description">
+        Welcome to the k8spulse Dashboard! This page provides an overview of Kubernetes cluster health and performance reports.
+        Below, you can find a list of generated reports for different environments. Each report provides in-depth information about
+        deployments, pods, node health, and other critical cluster metrics. Click on any report to view its detailed statistics.
+    </div>
+
+    <div class="reports">
+        <!-- The list of generated reports will be inserted here -->
+        
+        <div class="report-link">
+            <a href=""> Statistics Report - </a>
+        </div>
+        
+    </div>
+</body>
+</html>

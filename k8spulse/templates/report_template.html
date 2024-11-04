@@ -4,22 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ env_name }} Statistics Report</title>
+    <link rel="icon" href="https://res.cloudinary.com/dyknhuvxt/image/upload/c_thumb,w_200,g_face/v1730740391/k8spulse_axrf38.png">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            color: #333;
+            font-family: 'Roboto', sans-serif;
+            background-color: #f9fafb;
+            color: #334e68;
             padding: 20px;
         }
         h2 {
-            color: #4caf50;
+            color: #0f766e;
+            font-weight: bold;
         }
         .card {
-            background: #fff;
+            background: #ffffff;
             padding: 20px;
             margin: 20px 0;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            overflow-wrap: break-word;
         }
         .gauge-row, .chart-container {
             display: flex;
@@ -60,13 +63,14 @@
             margin-top: 20px;
         }
         th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
             text-align: center;
         }
         th {
-            background-color: #4caf50;
+            background-color: #0f766e;
             color: white;
+            font-weight: bold;
         }
         .events, .nodes {
             width: 48%;
@@ -74,22 +78,22 @@
             overflow-y: auto;
             padding: 20px;
             background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             margin-top: 20px;
         }
         .event {
             margin-bottom: 10px;
             padding: 10px;
-            border-radius: 5px;
+            border-radius: 8px;
         }
         .event-warning {
-            background-color: #fff3cd;
-            color: #856404;
+            background-color: #ffe69a;
+            color: #92400e;
         }
         .event-error {
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: #fecaca;
+            color: #b91c1c;
         }
         .status-indicator {
             width: 20px;
@@ -99,13 +103,13 @@
             margin-right: 10px;
         }
         .status-ok {
-            background-color: green;
+            background-color: #16a34a;
         }
         .status-error {
-            background-color: red;
+            background-color: #dc2626;
         }
         .status-warning {
-            background-color: orange;
+            background-color: #f97316;
         }
         .gauge-container {
             display: flex;
@@ -127,17 +131,30 @@
             justify-content: space-between;
         }
         details pre {
-            background-color: #f8f9fa;
+            background-color: #f3f4f6;
             padding: 10px;
-            border-radius: 5px;
+            border-radius: 8px;
             overflow: auto;
             max-height: 200px;
-            font-family: monospace;
+            font-family: 'Courier New', monospace;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .logo img {
+            width: 50px;
+            height: 50px;
         }
     </style>
 </head>
 <body>
-    <h2>{{ env_name }} Statistics Report - {{ timestamp }}</h2>
+    <div class="logo">
+        <img src="https://res.cloudinary.com/dyknhuvxt/image/upload/v1730740391/k8spulse_axrf38.png" alt="k8spulse logo">
+        <h2>{{ env_name }} Statistics Report - {{ timestamp }}</h2>
+    </div>
 
     <!-- Semaphores and Gauges in the Same Row -->
     <div class="gauge-row">

@@ -17,6 +17,9 @@ rich = "^13.9.4"
 [tool.poetry.scripts]
 k8spulse = "k8spulse.cli:cli"
 
+[tool.poetry.group.dev.dependencies]
+black = "^24.10.0"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
