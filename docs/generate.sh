@@ -14,17 +14,24 @@ blue() {
   tput setaf 4; echo "$1"; tput sgr0
 }
 
-# Check if git is configured
-if ! git rev-parse --is-inside-work-tree &> /dev/null; then
-  red "Error: Not a Git repository. Please run this script inside a valid Git repository."
-  exit 1
-fi
+# Check if necessary tools are installed
+check_dependencies() {
+  local dependencies=("git" "yq" "jq" "awk" "sort" "uniq")
+
+  for cmd in "${dependencies[@]}"; do
+    if ! command -v $cmd &> /dev/null; then
+      red "Error: $cmd is not installed. Please install $cmd to continue."
+      exit 1
+    fi
+  done
+}
 
 # Check if the --git-commit argument is present
 # Default values
 GIT_COMMIT=false
 ENV_NAME="staging"
 INTERVAL=300
+USE_AI=false
 
 # Parse arguments
 for arg in "$@"; do
@@ -34,6 +41,8 @@ for arg in "$@"; do
     ENV_NAME="${arg#*=}"
   elif [[ "$arg" == --interval=* ]]; then
     INTERVAL="${arg#*=}"
+  elif [ "$arg" == "--use-ai" ]; then
+    USE_AI=true
   fi
 done
 
@@ -158,117 +167,122 @@ while true; do
   tail -n 288 "$HISTORY_FILE" > "$HISTORY_FILE.tmp" && mv "$HISTORY_FILE.tmp" "$HISTORY_FILE"
 
   green "Generate report ..."
-  # Generate HTML report with modern design and requested adjustments
-  report="<html><head><title>$ENV_NAME Statistics</title><style>"
-  report+="body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; padding: 20px; }"
-  report+="h2 { color: #4caf50; }"
-  report+=".card { background: #fff; padding: 20px; margin: 20px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; }"
-  report+=".gauge-row, .chart-container { display: flex; gap: 20px; justify-content: space-around; margin-top: 20px; }"
-  report+=".gauge-container { text-align: center; }"
-  report+=".chart { text-align: center; display: inline-block; margin: 20px; }"
-  report+="table { width: 100%; border-collapse: collapse; margin-top: 20px; }"
-  report+="th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }"
-  report+="th { background-color: #4caf50; color: white; }"
-  report+=".events { max-height: 400px; overflow-y: auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-top: 20px; }"
-  report+=".event { margin-bottom: 10px; padding: 10px; border-radius: 5px; }"
-  report+=".event-warning { background-color: #fff3cd; color: #856404; }"
-  report+=".event-error { background-color: #f8d7da; color: #721c24; }"
-  report+="#refresh-timer { position: fixed; top: 20px; right: 20px; background: #4caf50; color: white; padding: 10px; border-radius: 8px; font-size: 16px; font-weight: bold; }"
-  report+=".status-indicator { width: 20px; height: 20px; border-radius: 50%; display: inline-block; margin-right: 10px; }"
-  report+=".status-ok { background-color: green; }"
-  report+=".status-error { background-color: red; }"
-  report+="</style><meta http-equiv=\"refresh\" content=\"60\">"
-  report+="</head><body>"
-  
+
+  # Crear el reporte HTML utilizando printf
+  printf "<html>\n<head>\n<title>%s Statistics</title>\n<style>\n" "$ENV_NAME" > "$REPORT_FILE"
+  printf "body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; padding: 20px; }\n" >> "$REPORT_FILE"
+  printf "h2 { color: #4caf50; }\n" >> "$REPORT_FILE"
+  printf ".card { background: #fff; padding: 20px; margin: 20px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; }\n" >> "$REPORT_FILE"
+  printf ".gauge-row, .chart-container { display: flex; gap: 20px; justify-content: space-around; margin-top: 20px; }\n" >> "$REPORT_FILE"
+  printf ".gauge-container { text-align: center; }\n" >> "$REPORT_FILE"
+  printf ".chart { text-align: center; display: inline-block; margin: 20px; }\n" >> "$REPORT_FILE"
+  printf "table { width: 100%%; border-collapse: collapse; margin-top: 20px; }\n" >> "$REPORT_FILE"
+  printf "th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }\n" >> "$REPORT_FILE"
+  printf "th { background-color: #4caf50; color: white; }\n" >> "$REPORT_FILE"
+  printf ".events { max-height: 400px; overflow-y: auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-top: 20px; }\n" >> "$REPORT_FILE"
+  printf ".event { margin-bottom: 10px; padding: 10px; border-radius: 5px; }\n" >> "$REPORT_FILE"
+  printf ".event-warning { background-color: #fff3cd; color: #856404; }\n" >> "$REPORT_FILE"
+  printf ".event-error { background-color: #f8d7da; color: #721c24; }\n" >> "$REPORT_FILE"
+  printf ".status-indicator { width: 20px; height: 20px; border-radius: 50%%; display: inline-block; margin-right: 10px; }\n" >> "$REPORT_FILE"
+  printf ".status-ok { background-color: green; }\n" >> "$REPORT_FILE"
+  printf ".status-error { background-color: red; }\n" >> "$REPORT_FILE"
+  printf "</style>\n<meta http-equiv=\"refresh\" content=\"60\">\n</head>\n<body>\n" >> "$REPORT_FILE"
+
   # Refresh timer and header
-  report+="<div id='refresh-timer'>Next refresh in: <span id='refresh-counter'>60 s</span></div>"
-  report+="<h2>$ENV_NAME Statistics</h2>"
+  printf "<h2>%s Statistics</h2>\n" "$ENV_NAME" >> "$REPORT_FILE"
 
-  report+="<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>"
-  report+="<script type=\"text/javascript\">
-            google.charts.load('current', {packages:['gauge']});
-            google.charts.setOnLoadCallback(drawGauges);
+  # Script para generar gráficos de Google
+  printf "<script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>\n" >> "$REPORT_FILE"
+  printf "<script type=\"text/javascript\">\n" >> "$REPORT_FILE"
+  printf "google.charts.load('current', {packages:['gauge']});\n" >> "$REPORT_FILE"
+  printf "google.charts.setOnLoadCallback(drawGauges);\n\n" >> "$REPORT_FILE"
+  printf "function drawGauges() {\n" >> "$REPORT_FILE"
+  printf "  var options_replicas = { width: 120, height: 120, minorTicks: 5, greenFrom: 70, greenTo: 100, yellowFrom: 40, yellowTo: 70, redFrom: 0, redTo: 40 };\n" >> "$REPORT_FILE"
+  printf "  var options_other = { width: 120, height: 120, minorTicks: 5, greenFrom: 0, greenTo: 20, yellowFrom: 20, yellowTo: 70, redFrom: 70, redTo: 100 };\n\n" >> "$REPORT_FILE"
+  printf "  var dataWithReplicas = google.visualization.arrayToDataTable([\n" >> "$REPORT_FILE"
+  printf "    ['Label', 'Value'],\n" >> "$REPORT_FILE"
+  printf "    ['With Replica', %d]\n" "$percentage_with_replicas" >> "$REPORT_FILE"
+  printf "  ]);\n" >> "$REPORT_FILE"
+  printf "  var dataZeroReplicas = google.visualization.arrayToDataTable([\n" >> "$REPORT_FILE"
+  printf "    ['Label', 'Value'],\n" >> "$REPORT_FILE"
+  printf "    ['No Replica', %d]\n" "$percentage_with_zero_replicas" >> "$REPORT_FILE"
+  printf "  ]);\n" >> "$REPORT_FILE"
+  printf "  var dataExactReplicas = google.visualization.arrayToDataTable([\n" >> "$REPORT_FILE"
+  printf "    ['Label', 'Value'],\n" >> "$REPORT_FILE"
+  printf "    ['Exact', %d]\n" "$percentage_with_exact_replicas" >> "$REPORT_FILE"
+  printf "  ]);\n" >> "$REPORT_FILE"
+  printf "  var dataCrashLoop = google.visualization.arrayToDataTable([\n" >> "$REPORT_FILE"
+  printf "    ['Label', 'Value'],\n" >> "$REPORT_FILE"
+  printf "    ['CrashLoop', %d]\n" "$percentage_with_crashloopbackoff" >> "$REPORT_FILE"
+  printf "  ]);\n" >> "$REPORT_FILE"
+  printf "  var dataRecentlyRestarted = google.visualization.arrayToDataTable([\n" >> "$REPORT_FILE"
+  printf "    ['Label', 'Value'],\n" >> "$REPORT_FILE"
+  printf "    ['Restarted', %d]\n" "$percentage_recently_restarted" >> "$REPORT_FILE"
+  printf "  ]);\n\n" >> "$REPORT_FILE"
+  printf "  var gaugeWithReplicas = new google.visualization.Gauge(document.getElementById('gauge_with_replicas'));\n" >> "$REPORT_FILE"
+  printf "  gaugeWithReplicas.draw(dataWithReplicas, options_replicas);\n\n" >> "$REPORT_FILE"
+  printf "  var gaugeZeroReplicas = new google.visualization.Gauge(document.getElementById('gauge_zero_replicas'));\n" >> "$REPORT_FILE"
+  printf "  gaugeZeroReplicas.draw(dataZeroReplicas, options_other);\n\n" >> "$REPORT_FILE"
+  printf "  var gaugeExactReplicas = new google.visualization.Gauge(document.getElementById('gauge_exact_replicas'));\n" >> "$REPORT_FILE"
+  printf "  gaugeExactReplicas.draw(dataExactReplicas, options_replicas);\n\n" >> "$REPORT_FILE"
+  printf "  var gaugeCrashLoop = new google.visualization.Gauge(document.getElementById('gauge_crashloop'));\n" >> "$REPORT_FILE"
+  printf "  gaugeCrashLoop.draw(dataCrashLoop, options_other);\n\n" >> "$REPORT_FILE"
+  printf "  var gaugeRecentlyRestarted = new google.visualization.Gauge(document.getElementById('gauge_recently_restarted'));\n" >> "$REPORT_FILE"
+  printf "  gaugeRecentlyRestarted.draw(dataRecentlyRestarted, options_other);\n" >> "$REPORT_FILE"
+  printf "}\n" >> "$REPORT_FILE"
+  printf "</script>\n</head>\n<body>\n" >> "$REPORT_FILE"
 
-            function drawGauges() {
-              var options_replicas = { width: 120, height: 120, minorTicks: 5, greenFrom: 70, greenTo: 100, yellowFrom: 40, yellowTo: 70, redFrom: 0, redTo: 40 };
-              var options_other = { width: 120, height: 120, minorTicks: 5, greenFrom: 0, greenTo: 20, yellowFrom: 20, yellowTo: 70, redFrom: 70, redTo: 100 };
+  # Añadir la fila de gauges al reporte HTML
+  printf "<div class='gauge-row'>\n" >> "$REPORT_FILE"
 
-              var dataWithReplicas = google.visualization.arrayToDataTable([
-                ['Label', 'Value'],
-                ['With Replica', $percentage_with_replicas]
-              ]);
-              var dataZeroReplicas = google.visualization.arrayToDataTable([
-                ['Label', 'Value'],
-                ['No Replica', $percentage_with_zero_replicas]
-              ]);
-              var dataExactReplicas = google.visualization.arrayToDataTable([
-                ['Label', 'Value'],
-                ['Exact', $percentage_with_exact_replicas]
-              ]);
-              var dataCrashLoop = google.visualization.arrayToDataTable([
-                ['Label', 'Value'],
-                ['CrashLoop', $percentage_with_crashloopbackoff]
-              ]);
-              var dataRecentlyRestarted = google.visualization.arrayToDataTable([
-                ['Label', 'Value'],
-                ['Restarted', $percentage_recently_restarted]
-              ]);
-
-              var gaugeWithReplicas = new google.visualization.Gauge(document.getElementById('gauge_with_replicas'));
-              gaugeWithReplicas.draw(dataWithReplicas, options_replicas);
-
-              var gaugeZeroReplicas = new google.visualization.Gauge(document.getElementById('gauge_zero_replicas'));
-              gaugeZeroReplicas.draw(dataZeroReplicas, options_other);
-
-              var gaugeExactReplicas = new google.visualization.Gauge(document.getElementById('gauge_exact_replicas'));
-              gaugeExactReplicas.draw(dataExactReplicas, options_replicas);
-
-              var gaugeCrashLoop = new google.visualization.Gauge(document.getElementById('gauge_crashloop'));
-              gaugeCrashLoop.draw(dataCrashLoop, options_other);
-
-              var gaugeRecentlyRestarted = new google.visualization.Gauge(document.getElementById('gauge_recently_restarted'));
-              gaugeRecentlyRestarted.draw(dataRecentlyRestarted, options_other);
-            }
-          </script>"
-  report+="</head><body>"
-
-  report+="<div class='gauge-row'>"
-  
   green "Generate Gauges ..."
-  # Gauges with values and percentages
-  report+="<div class='status-container'>"
-  report+="<div class='status-box'><div class='status-indicator $(awk -v a="$metrics_server_replicas" 'BEGIN {print (a == 0 ? "status-error" : "status-ok") }')'></div>Metrics-server: $(awk -v a="$metrics_server_replicas" 'BEGIN {print (a == 0 ? "Error" : "OK") }')</div>"
-  report+="<div class='status-box'><div class='status-indicator $(awk -v a="$kube_dns_replicas" 'BEGIN {print (a == 0 ? "status-error" : "status-ok") }')'></div>Kube-dns: $(awk -v a="$kube_dns_replicas" 'BEGIN {print (a == 0 ? "Error" : "OK") }')</div>"
-  report+="<div class='status-box'><div class='status-indicator $(awk -v a="$castai_agent_replicas" 'BEGIN {print (a == 0 ? "status-error" : "status-ok") }')'></div>CAST AI Agent: $(awk -v a="$castai_agent_replicas" 'BEGIN {print (a == 0 ? "Error" : "OK") }')</div>"
-  report+="<div class='status-box'><div class='status-indicator $(awk -v a="$castai_workload_autoscaler_replicas" 'BEGIN {print (a == 0 ? "status-error" : "status-ok") }')'></div>CAST AI Workload Autoscaler: $(awk -v a="$castai_workload_autoscaler_replicas" 'BEGIN {print (a == 0 ? "Error" : "OK") }')</div>"
-  report+="<div class='status-box'><div class='status-indicator $(awk -v a="$castai_cluster_controller_replicas" 'BEGIN {print (a == 0 ? "status-error" : "status-ok") }')'></div>CAST AI Cluster Controller: $(awk -v a="$castai_cluster_controller_replicas" 'BEGIN {print (a == 0 ? "Error" : "OK") }')</div>"
-  report+="</div>"
-  report+="<div class='gauge-container'><div id='gauge_with_replicas'></div><div>With Replica: $deployments_with_replicas ($percentage_with_replicas%)</div></div>"
-  report+="<div class='gauge-container'><div id='gauge_zero_replicas'></div><div>No Replica: $deployments_with_zero_replicas ($percentage_with_zero_replicas%)</div></div>"
-  report+="<div class='gauge-container'><div id='gauge_exact_replicas'></div><div>Exact: $deployments_with_exact_replicas ($percentage_with_exact_replicas%)</div></div>"
-  report+="<div class='gauge-container'><div id='gauge_crashloop'></div><div>CrashLoop: $pods_with_crashloopbackoff ($percentage_with_crashloopbackoff%)</div></div>"
-  report+="<div class='gauge-container'><div id='gauge_recently_restarted'></div><div>Restarted: $pods_recently_restarted ($percentage_recently_restarted%)</div></div>"
 
-  report+="</div>"
+  # Añadir los indicadores de estado y su estado correspondiente
+  printf "<div class='status-container'>\n" >> "$REPORT_FILE"
+  printf "<div class='status-box'><div class='status-indicator %s'></div>Metrics-server: %s</div>\n" "$(awk -v a="$metrics_server_replicas" 'BEGIN {print (a == 0 ? "status-error" : "status-ok") }')" "$(awk -v a="$metrics_server_replicas" 'BEGIN {print (a == 0 ? "Error" : "OK") }')" >> "$REPORT_FILE"
+  printf "<div class='status-box'><div class='status-indicator %s'></div>Kube-dns: %s</div>\n" "$(awk -v a="$kube_dns_replicas" 'BEGIN {print (a == 0 ? "status-error" : "status-ok") }')" "$(awk -v a="$kube_dns_replicas" 'BEGIN {print (a == 0 ? "Error" : "OK") }')" >> "$REPORT_FILE"
+  printf "<div class='status-box'><div class='status-indicator %s'></div>CAST AI Agent: %s</div>\n" "$(awk -v a="$castai_agent_replicas" 'BEGIN {print (a == 0 ? "status-error" : "status-ok") }')" "$(awk -v a="$castai_agent_replicas" 'BEGIN {print (a == 0 ? "Error" : "OK") }')" >> "$REPORT_FILE"
+  printf "<div class='status-box'><div class='status-indicator %s'></div>CAST AI Workload Autoscaler: %s</div>\n" "$(awk -v a="$castai_workload_autoscaler_replicas" 'BEGIN {print (a == 0 ? "status-error" : "status-ok") }')" "$(awk -v a="$castai_workload_autoscaler_replicas" 'BEGIN {print (a == 0 ? "Error" : "OK") }')" >> "$REPORT_FILE"
+  printf "<div class='status-box'><div class='status-indicator %s'></div>CAST AI Cluster Controller: %s</div>\n" "$(awk -v a="$castai_cluster_controller_replicas" 'BEGIN {print (a == 0 ? "status-error" : "status-ok") }')" "$(awk -v a="$castai_cluster_controller_replicas" 'BEGIN {print (a == 0 ? "Error" : "OK") }')" >> "$REPORT_FILE"
+  printf "</div>\n" >> "$REPORT_FILE"
+
+  # Añadir contenedores de gauge con sus valores
+  printf "<div class='gauge-container'><div id='gauge_with_replicas'></div><div>With Replica: %d (%d%%)</div></div>\n" "$deployments_with_replicas" "$percentage_with_replicas" >> "$REPORT_FILE"
+  printf "<div class='gauge-container'><div id='gauge_zero_replicas'></div><div>No Replica: %d (%d%%)</div></div>\n" "$deployments_with_zero_replicas" "$percentage_with_zero_replicas" >> "$REPORT_FILE"
+  printf "<div class='gauge-container'><div id='gauge_exact_replicas'></div><div>Exact: %d (%d%%)</div></div>\n" "$deployments_with_exact_replicas" "$percentage_with_exact_replicas" >> "$REPORT_FILE"
+  printf "<div class='gauge-container'><div id='gauge_crashloop'></div><div>CrashLoop: %d (%d%%)</div></div>\n" "$pods_with_crashloopbackoff" "$percentage_with_crashloopbackoff" >> "$REPORT_FILE"
+  printf "<div class='gauge-container'><div id='gauge_recently_restarted'></div><div>Restarted: %d (%d%%)</div></div>\n" "$pods_recently_restarted" "$percentage_recently_restarted" >> "$REPORT_FILE"
+
+  # Cerrar la fila de gauges
+  printf "</div>\n" >> "$REPORT_FILE"
+
+  # Añadir el placeholder de OpenAI si USE_AI es verdadero
+  if [ "$USE_AI" = true ]; then
+    printf "\n<div id='openai-recommendation-placeholder'></div>\n" >> "$REPORT_FILE"
+  fi
 
   blue "Generating events ..."
-  # Events and Nodes Issues Sections Container
-  report+="<div class='events-nodes-container' style='display: flex; gap: 20px; width: 100%; align-items: flex-start;'>"
+  # Contenedor para eventos y problemas de nodos
+  printf "<div class='events-nodes-container' style='display: flex; gap: 20px; width: 100%%; align-items: flex-start;'>\n" >> "$REPORT_FILE"
 
-  # Events Section
-  report+="<div class='events' style='flex: 1; max-height: 400px; overflow-y: auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);'><h3>Unusual Events</h3>"
+  # Sección de eventos
+  printf "<div class='events' style='flex: 1; max-height: 400px; overflow-y: auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);'><h3>Unusual Events</h3>\n" >> "$REPORT_FILE"
+
   unusual_events=$(kubectl get events --all-namespaces | \
-  grep -v -E "^NAMESPACE|Normal" | \
-  awk '{print $1, $2, $5, $6, substr($0, index($0,$7))}' | \
-  sort -k4,4 -k5,5 | \
-  awk '!seen[$4,$5]++ {count[$4,$5] = 1; time[$4,$5] = $2; namespace[$4,$5] = $4; kind[$4,$5] = $5; first_col[$4,$5] = $1; rest[$4,$5] = substr($0, index($0,$7))} seen[$4,$5]++ {count[$4,$5]++} \
-  END {for (key in count) print count[key], time[key], namespace[key], kind[key], first_col[key], rest[key]}' | \
-  sort -k1,1nr | \
-  awk '{print "[" $1 "] [" $2 "] [" $3 "] [" $4 "] [" $5 "] " substr($0, index($0,$6))}' | \
-  head -50)
+    grep -v -E "^NAMESPACE|Normal" | \
+    awk '{print $1, $2, $5, $6, substr($0, index($0,$7))}' | \
+    sort -k4,4 -k5,5 | \
+    awk '!seen[$4,$5]++ {count[$4,$5] = 1; time[$4,$5] = $2; namespace[$4,$5] = $4; kind[$4,$5] = $5; first_col[$4,$5] = $1; rest[$4,$5] = substr($0, index($0,$7))} seen[$4,$5]++ {count[$4,$5]++} \
+    END {for (key in count) print count[key], time[key], namespace[key], kind[key], first_col[key], rest[key]}' | \
+    sort -k1,1nr | \
+    awk '{print "[" $1 "] [" $2 "] [" $3 "] [" $4 "] [" $5 "] " substr($0, index($0,$6))}' | \
+    head -50)
+  
+  green "Events read ..."
 
+  # Procesar eventos inusuales
   if [ -z "$unusual_events" ]; then
-    report+="<div class='event' style='color:red;'>No unusual events found.</div>"
+    printf "<div class='event' style='color:red;'>No unusual events found.</div>\n" >> "$REPORT_FILE"
   else
     while IFS= read -r event; do 
       count=$(echo "$event" | awk '{print $1}' | tr -d '[]')
@@ -286,67 +300,72 @@ while true; do
         "SuccessfulCreate") color="blue" ;;
         *) color="purple" ;;
       esac
-      report+="<div class='$event_class' style='border: 2px solid $color; padding: 10px; margin: 5px; background-color: #f0f0f0;'>"
-      report+="<strong style='color: $color;'>[$kind]</strong> <strong>[$namespace]</strong> <span style='font-weight: bold;'>($count times)</span> <em>[$time]</em>: <em>$message</em>"
-      report+="<br><small>First occurrence: [$first_col]</small>"
-      report+="</div>"
+      printf "<div class='%s' style='border: 2px solid %s; padding: 10px; margin: 5px; background-color: #f0f0f0;'>\n" "$event_class" "$color" >> "$REPORT_FILE"
+      printf "<strong style='color: %s;'>[%s]</strong> <strong>[%s]</strong> <span style='font-weight: bold;'>(%s times)</span> <em>[%s]</em>: <em>%s</em>\n" "$color" "$kind" "$namespace" "$count" "$time" "$message" >> "$REPORT_FILE"
+      printf "<br><small>First occurrence: [%s]</small>\n" "$first_col" >> "$REPORT_FILE"
+      printf "</div>\n" >> "$REPORT_FILE"
     done <<< "$unusual_events"
   fi
-  report+="</div>"
+
+  # Cerrar la sección de eventos
+  printf "</div>\n" >> "$REPORT_FILE"
+
 
   blue "Get nodes ..."
-  # Nodes with Issues Section
-report+="<div class='nodes' style='flex: 1; max-height: 400px; overflow-y: auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);'><h3>Nodes with Issues</h3>"
-nodes_with_issues=$(kubectl get nodes --no-headers | awk '$2 != "Ready" {print $1, $2}')
 
-if [ -z "$nodes_with_issues" ]; then
-  report+="<div class='event' style='color:green;'>All nodes are healthy.</div>"
-else
-  while IFS= read -r node_issue; do
-    node_name=$(echo "$node_issue" | awk '{print $1}')
-    node_status=$(echo "$node_issue" | awk '{print $2}')
-    
-    # Obtener la descripción detallada del nodo en formato YAML y filtrar secciones no deseadas con yq
-    node_description=$(kubectl get node "$node_name" -o yaml | yq 'del(.metadata.labels, .metadata.annotations, .metadata.creationTimestamp)')
+  # Añadir la sección de nodos con problemas al reporte HTML
+  printf "<div class='nodes' style='flex: 1; max-height: 400px; overflow-y: auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);'><h3>Nodes with Issues</h3>\n" >> "$REPORT_FILE"
+  nodes_with_issues=$(kubectl get nodes --no-headers | awk '$2 != "Ready" {print $1, $2}')
+  if [ -z "$nodes_with_issues" ]; then
+    printf "<div class='event' style='color:green;'>All nodes are healthy.</div>\n" >> "$REPORT_FILE"
+  else
+    while IFS= read -r node_issue; do
+      node_name=$(echo "$node_issue" | awk '{print $1}')
+      node_status=$(echo "$node_issue" | awk '{print $2}')
 
-    report+="<div class='event' style='border: 2px solid red; padding: 10px; margin: 5px; background-color: #f0f0f0;'>"
-    report+="<strong style='color: red;'>Node: [$node_name]</strong> - Status: <em>$node_status</em>"
-    
-    # Botón para colapsar/expandir la descripción
-    report+="<button onclick='toggleDescription(\"$node_name\")' style='margin-right: 10px; background: none; border: none; font-size: 1.2em; cursor: pointer;'>▶</button>"
+      # Obtener la descripción detallada del nodo en formato YAML y filtrar secciones no deseadas con yq
+      node_description=$(kubectl get node "$node_name" -o yaml | yq 'del(.metadata.labels, .metadata.annotations, .metadata.creationTimestamp)')
 
-    # Agregar la descripción filtrada del nodo en un div colapsable, utilizando highlight.js para el formato
-    report+="<div id='desc-$node_name' class='node-description' style='display: none; margin-top: 10px; padding: 10px; background-color: #e9e9e9; border-radius: 5px; font-size: 0.9em;'>"
-    report+="<pre><code class='yaml'>$node_description</code></pre>"
-    report+="</div>"
+      printf "<div class='event' style='border: 2px solid red; padding: 10px; margin: 5px; background-color: #f0f0f0;'>\n" >> "$REPORT_FILE"
+      printf "<strong style='color: red;'>Node: [%s]</strong> - Status: <em>%s</em>\n" "$node_name" "$node_status" >> "$REPORT_FILE"
 
-    report+="</div>"
-  done <<< "$nodes_with_issues"
-fi
-report+="</div>"
+      # Botón para colapsar/expandir la descripción del nodo
+      printf "<button onclick='toggleDescription(\"%s\")' style='margin-right: 10px; background: none; border: none; font-size: 1.2em; cursor: pointer;'>▶</button>\n" "$node_name" >> "$REPORT_FILE"
 
-# JavaScript para colapsar/expandir la descripción del nodo
-report+="<script>
-function toggleDescription(nodeId) {
-  var descElement = document.getElementById('desc-' + nodeId);
-  var buttonElement = descElement.previousElementSibling;
-  if (descElement.style.display === 'none') {
-    descElement.style.display = 'block';
-    buttonElement.innerHTML = '▼'; // Cambiar el icono cuando se expande
-  } else {
-    descElement.style.display = 'none';
-    buttonElement.innerHTML = '▶'; // Cambiar el icono cuando se colapsa
-  }
-}
-</script>"
+      # Agregar la descripción filtrada del nodo en un div colapsable, utilizando highlight.js para el formato
+      printf "<div id='desc-%s' class='node-description' style='display: none; margin-top: 10px; padding: 10px; background-color: #e9e9e9; border-radius: 5px; font-size: 0.9em;'>\n" "$node_name" >> "$REPORT_FILE"
+      printf "<pre><code class='yaml'>%s</code></pre>\n" "$node_description" >> "$REPORT_FILE"
+      printf "</div>\n" >> "$REPORT_FILE"
 
-# Incluir highlight.js para resaltar el YAML con colores
-report+="<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/default.min.css'>"
-report+="<script src='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js'></script>"
-report+="<script>hljs.highlightAll();</script>"
+      printf "</div>\n" >> "$REPORT_FILE"
+    done <<< "$nodes_with_issues"
+  fi
 
-# Close the events and nodes container
-report+="</div>"
+  # Cerrar la sección de nodos
+  printf "</div>\n" >> "$REPORT_FILE"
+
+  # Añadir el script JavaScript para colapsar/expandir la descripción del nodo
+  printf "<script>\n" >> "$REPORT_FILE"
+  printf "function toggleDescription(nodeId) {\n" >> "$REPORT_FILE"
+  printf "  var descElement = document.getElementById('desc-' + nodeId);\n" >> "$REPORT_FILE"
+  printf "  var buttonElement = descElement.previousElementSibling;\n" >> "$REPORT_FILE"
+  printf "  if (descElement.style.display === 'none') {\n" >> "$REPORT_FILE"
+  printf "    descElement.style.display = 'block';\n" >> "$REPORT_FILE"
+  printf "    buttonElement.innerHTML = '▼'; // Cambiar el icono cuando se expande\n" >> "$REPORT_FILE"
+  printf "  } else {\n" >> "$REPORT_FILE"
+  printf "    descElement.style.display = 'none';\n" >> "$REPORT_FILE"
+  printf "    buttonElement.innerHTML = '▶'; // Cambiar el icono cuando se colapsa\n" >> "$REPORT_FILE"
+  printf "  }\n" >> "$REPORT_FILE"
+  printf "}\n" >> "$REPORT_FILE"
+  printf "</script>\n" >> "$REPORT_FILE"
+
+  # Incluir highlight.js para resaltar el YAML con colores
+  printf "<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/styles/default.min.css'>\n" >> "$REPORT_FILE"
+  printf "<script src='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js'></script>\n" >> "$REPORT_FILE"
+  printf "<script>hljs.highlightAll();</script>\n" >> "$REPORT_FILE"
+
+  # Cerrar el contenedor de eventos y nodos
+  printf "</div>\n" >> "$REPORT_FILE"
 
   green "Generate line charts ..."
 
@@ -425,40 +444,195 @@ report+="</div>"
 
   green "Add charts to repoert ..."
 
-  # Add charts to the report
-  report+="<div class='chart-container'>"
+  green "Add charts to report ..."
+
+  # Añadir gráficos al reporte
+  printf "<div class='chart-container'>\n" >> "$REPORT_FILE"
   for chart_url in "${chart_urls[@]}"; do
-    report+="<div class='chart'><img src='$chart_url' alt='Deployment and Pod Statistics'></div>"
+    printf "<div class='chart'><img src='%s' alt='Deployment and Pod Statistics'></div>\n" "$chart_url" >> "$REPORT_FILE"
   done
-  report+="</div>"
+  printf "</div>\n" >> "$REPORT_FILE"
 
   green "Generate History Table ..."
-  # Generate history table
-  report+="<h3>Last 24-Hour History</h3>"
-  report+="<table><tr><th>Time</th><th>Total Deployments</th><th>With Replica</th><th>No Replica</th><th>Exactly Desired</th><th>CrashLoopBackOff</th><th>Recently Restarted</th><th>Metrics-server</th><th>Kube-dns</th></tr>"
 
-  # Create a temporary file to store the history in reverse
+  # Añadir tabla de historial al reporte
+  printf "<h3>Last 24-Hour History</h3>\n" >> "$REPORT_FILE"
+  printf "<table><tr><th>Time</th><th>Total Deployments</th><th>With Replica</th><th>No Replica</th><th>Exactly Desired</th><th>CrashLoopBackOff</th><th>Recently Restarted</th><th>Metrics-server</th><th>Kube-dns</th></tr>\n" >> "$REPORT_FILE"
+
+  # Crear un archivo temporal para almacenar el historial en orden inverso
   temp_file=$(mktemp)
 
-  # Dump the content in reverse into the temporary file
+  # Volcar el contenido en orden inverso en el archivo temporal
   tail -r "$HISTORY_FILE" > "$temp_file"
 
-  # Read the temporary file and generate the HTML table
+  # Leer el archivo temporal y generar la tabla HTML
   while IFS='|' read -r timestamp total with_replicas percentage_with_replicas without_replicas percentage_without_replicas exact_replicas percentage_exact_replicas crashloopbackoff percentage_crashloopbackoff recently_restarted percentage_recently_restarted metrics_server metrics_server_percentage kube_dns kube_dns_percentage; do
     metrics_server_percentage=$(awk -v val="$metrics_server_percentage" 'BEGIN {print (val == "" || val == "-") ? 100 : val}')
     kube_dns_percentage=$(awk -v val="$kube_dns_percentage" 'BEGIN {print (val == "" || val == "-") ? 100 : val}')
-    report+="<tr><td>$timestamp</td><td>$total</td><td>$with_replicas ($percentage_with_replicas%)</td><td>$without_replicas ($percentage_without_replicas%)</td><td>$exact_replicas ($percentage_exact_replicas%)</td><td>$crashloopbackoff ($percentage_crashloopbackoff%)</td><td>$recently_restarted ($percentage_recently_restarted%)</td><td>$metrics_server ($metrics_server_percentage%)</td><td>$kube_dns ($kube_dns_percentage%)</td></tr>"
+    printf "<tr><td>%s</td><td>%s</td><td>%s (%s%%)</td><td>%s (%s%%)</td><td>%s (%s%%)</td><td>%s (%s%%)</td><td>%s (%s%%)</td><td>%s (%s%%)</td><td>%s (%s%%)</td></tr>\n" \
+      "$timestamp" "$total" "$with_replicas" "$percentage_with_replicas" "$without_replicas" "$percentage_without_replicas" "$exact_replicas" "$percentage_exact_replicas" \
+      "$crashloopbackoff" "$percentage_crashloopbackoff" "$recently_restarted" "$percentage_recently_restarted" "$metrics_server" "$metrics_server_percentage" "$kube_dns" "$kube_dns_percentage" >> "$REPORT_FILE"
   done < "$temp_file"
 
-  # Delete the temporary file
+  # Eliminar el archivo temporal
   rm "$temp_file"
 
-  report+="</table>"
+  printf "</table>\n" >> "$REPORT_FILE"
 
-  #npx prettier . --write
+  # Guardar reporte en el archivo HTML
+  green "Report saved to $REPORT_FILE"
 
-  # Save report to HTML file
-  echo "$report" > "$REPORT_FILE"
+
+  if [ "$USE_AI" = true ]; then
+    # Subir el archivo HTML a OpenAI
+    upload_response=$(curl -s https://api.openai.com/v1/files \
+      -H "Authorization: Bearer $OPENAI_API_KEY" \
+      -F purpose="assistants" \
+      -F file="@$REPORT_FILE")
+
+    # Obtener el file_id del archivo subido
+    file_id=$(echo "$upload_response" | jq -r '.id')
+
+    if [ -z "$file_id" ] || [ "$file_id" = "null" ]; then
+      red "Error: No se pudo subir el archivo a OpenAI"
+      exit 1
+    fi
+  
+    # Crear un nuevo thread
+    thread_response=$(curl -s https://api.openai.com/v1/threads \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $OPENAI_API_KEY" \
+      -H "OpenAI-Beta: assistants=v2" \
+      -d '{}')
+
+    # Obtener el thread_id
+    thread_id=$(echo "$thread_response" | jq -r '.id')
+
+    if [ -z "$thread_id" ] || [ "$thread_id" = "null" ]; then
+      red "Error: No se pudo crear un nuevo thread en OpenAI"
+      exit 1
+    fi
+
+    yellow "Thread id: $thread_id, Filew Id: $file_id"
+    green "Send Open AI message"
+    message_response=$(curl -s https://api.openai.com/v1/threads/$thread_id/messages \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $OPENAI_API_KEY" \
+      -H "OpenAI-Beta: assistants=v2" \
+      -d '{
+        "role": "user",
+        "content": "Attached is a Kubernetes cluster report. Please analyze it and provide a concise and actionable recommendation to improve the overall health of the cluster. Focus on issues related to deployments, pods, metrics server, and CrashLoopBackOff. Only return the result in Markdown format, without using ``` or any other code block delimiters.",
+        "attachments": [
+          {
+            "file_id": "'"$file_id"'",
+            "tools": [{"type": "file_search"}]
+          }
+        ]
+      }')
+
+    # Obtener el message_id del mensaje enviado
+    message_id=$(echo "$message_response" | jq -r '.id')
+
+    if [ -z "$message_id" ] || [ "$message_id" = "null" ]; then
+      red "Error: No se pudo enviar el mensaje a OpenAI"
+      exit 1
+    fi
+
+    if [ "$USE_AI" = true ]; then
+      # Crear el asistente usando GPT-4o
+      assistant_response=$(curl -s "https://api.openai.com/v1/assistants" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $OPENAI_API_KEY" \
+        -H "OpenAI-Beta: assistants=v2" \
+        -d '{
+          "instructions": "You are an assistant that provides actionable recommendations based on Kubernetes cluster reports. Consider that Cast.ai its used to analyze resources taints issues that could be normal when using dynamic auto-scaling",
+          "name": "Kubernetes Health Assistant",
+          "tools": [
+            {
+              "type": "file_search"
+            }
+          ],
+          "model": "gpt-4o"
+        }')
+
+      # Obtener el assistant_id del asistente creado
+      assistant_id=$(echo "$assistant_response" | jq -r '.id')
+
+      if [ -z "$assistant_id" ] || [ "$assistant_id" = "null" ]; then
+        red "Error: No se pudo crear el asistente en OpenAI"
+        exit 1
+      fi
+    fi
+
+    if [ "$USE_AI" = true ]; then
+      # Crear un run para el thread con el asistente
+      run_response=$(curl -s "https://api.openai.com/v1/threads/$thread_id/runs" \
+        -H "Authorization: Bearer $OPENAI_API_KEY" \
+        -H "Content-Type: application/json" \
+        -H "OpenAI-Beta: assistants=v2" \
+        -d '{
+          "assistant_id": "'"$assistant_id"'"
+        }')
+
+      # Obtener el run_id del run creado
+      run_id=$(echo "$run_response" | jq -r '.id')
+
+      if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
+        red "Error: No se pudo crear un run en OpenAI"
+        exit 1
+      fi
+    fi
+
+    recommendation=""
+  fi
+  # Iterar hasta que el run esté completo
+  while true; do
+    sleep 5  # Esperar unos segundos antes de intentar obtener la respuesta
+
+    # Obtener el estado del run
+    run_status_response=$(curl -s "https://api.openai.com/v1/threads/$thread_id/runs/$run_id" \
+      -H "Authorization: Bearer $OPENAI_API_KEY" \
+      -H "OpenAI-Beta: assistants=v2")
+
+    # Verificar si el run está completo
+    status=$(echo "$run_status_response" | jq -r '.status')
+
+    if [ "$status" = "completed" ]; then
+      break
+    elif [ "$status" = "failed" ]; then
+      red "Error: El run ha fallado."
+      exit 1
+    fi
+  done
+
+  # Obtener todos los mensajes del thread
+  messages_response=$(curl -s "https://api.openai.com/v1/threads/$thread_id/messages" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $OPENAI_API_KEY" \
+    -H "OpenAI-Beta: assistants=v2")
+
+  # Obtener el contenido del último mensaje (suponiendo que el mensaje generado por el asistente es el último)
+  recommendation=$(echo "$messages_response" | jq -r '.data[0].content[0].text.value')
+
+  if [ -z "$recommendation" ] || [ "$recommendation" = "null" ]; then
+    red "Error: No se pudo obtener la recomendación del asistente."
+    exit 1
+  fi
+
+  recommendation_div="<div class='card' style='max-height: 200px; overflow-y: auto; overflow-x: hidden;'>
+  <pre style='white-space: pre-wrap; word-wrap: break-word;'>
+    <code class='markdown'>$recommendation</code>
+  </pre>
+</div>"
+
+  # Leer el archivo y reemplazar el placeholder
+  while IFS= read -r line; do
+      if [[ "$line" == *"<div id='openai-recommendation-placeholder'></div>"* ]]; then
+          printf "%s\n" "$recommendation_div"
+      else
+          printf "%s\n" "$line"
+      fi
+  done < "$REPORT_FILE" > temp.html && mv temp.html "$REPORT_FILE"
 
   # Perform git add, commit, and push for all files if --git-commit is present
   if [ "$GIT_COMMIT" = true ]; then
