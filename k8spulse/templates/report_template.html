@@ -69,6 +69,7 @@
             color: white;
         }
         .events, .nodes {
+            width: 48%;
             max-height: 400px;
             overflow-y: auto;
             padding: 20px;
@@ -111,15 +112,19 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            max-width: 80px;
+            max-width: 100px;
         }
         .gauge img {
-            width: 100%;
-            max-width: 120px;
+            width: 80%;
             height: auto;
         }
         .gauge-title {
             font-size: 10px;
+        }
+        .events-nodes-row {
+            display: flex;
+            gap: 4%;
+            justify-content: space-between;
         }
     </style>
 </head>
@@ -185,7 +190,7 @@
     {% endif %}
 
     <!-- Events and Nodes in the Same Row -->
-    <div class="gauge-row">
+    <div class="events-nodes-row">
         <!-- Unusual Events -->
         <div class="events">
             <h3>Unusual Events</h3>
