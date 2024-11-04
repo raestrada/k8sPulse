@@ -262,11 +262,11 @@
             <tr>
                 <td>{{ row.timestamp }}</td>
                 <td>{{ row.total_deployments }}</td>
-                <td>{{ row.deployments_with_replicas }}</td>
-                <td>{{ row.deployments_with_zero_replicas }}</td>
-                <td>{{ row.deployments_with_exact_replicas }}</td>
-                <td>{{ row.pods_with_crashloopbackoff }}</td>
-                <td>{{ row.deployments_with_recent_start }}</td>
+                <td>{{ row.deployments_with_replicas }} ({{ (row.deployments_with_replicas / row.total_deployments * 100) | round(2) }}%)</td>
+                <td>{{ row.deployments_with_zero_replicas }} ({{ (row.deployments_with_zero_replicas / row.total_deployments * 100) | round(2) }}%)</td>
+                <td>{{ row.deployments_with_exact_replicas }} ({{ (row.deployments_with_exact_replicas / row.total_deployments * 100) | round(2) }}%)</td>
+                <td>{{ row.pods_with_crashloopbackoff }} ({{ (row.pods_with_crashloopbackoff / row.total_deployments * 100) | round(2) }}%)</td>
+                <td>{{ row.deployments_with_recent_start }} ({{ (row.deployments_with_recent_start / row.total_deployments * 100) | round(2) }}%)</td>
                 <td>{{ row.nodes_with_issues }}</td>
             </tr>
         {% endfor %}

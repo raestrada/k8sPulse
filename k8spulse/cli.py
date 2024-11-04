@@ -234,20 +234,36 @@ def generate_line_chart(history_df):
     if 'timestamp' not in history_df.columns:
         console.log("[red]Error: 'timestamp' column not found in history data. Cannot generate line chart.[/red]")
         return ""
-    fig, ax = plt.subplots()
-    history_df.plot(x='timestamp', y=['deployments_with_replicas', 'deployments_with_zero_replicas', 'pods_with_crashloopbackoff'], ax=ax)
+
+    # Convert absolute values to percentages
+    history_df['deployments_with_replicas_pct'] = (history_df['deployments_with_replicas'] / history_df['total_deployments']) * 100
+    history_df['deployments_with_zero_replicas_pct'] = (history_df['deployments_with_zero_replicas'] / history_df['total_deployments']) * 100
+    history_df['deployments_with_exact_replicas_pct'] = (history_df['deployments_with_exact_replicas'] / history_df['total_deployments']) * 100
+    history_df['pods_with_crashloopbackoff_pct'] = (history_df['pods_with_crashloopbackoff'] / history_df['total_deployments']) * 100
+    history_df['deployments_with_recent_start_pct'] = (history_df['deployments_with_recent_start'] / history_df['total_deployments']) * 100
+
+    fig, ax = plt.subplots(figsize=(16, 6))  # Double the width by adjusting figsize
+    history_df.plot(x='timestamp', y=[
+        'deployments_with_replicas_pct',
+        'deployments_with_zero_replicas_pct',
+        'deployments_with_exact_replicas_pct',
+        'pods_with_crashloopbackoff_pct',
+        'deployments_with_recent_start_pct'
+    ], ax=ax)
+
     plt.xlabel('Time')
-    plt.ylabel('Count')
-    plt.title('Kubernetes Metrics Over Time')
+    plt.ylabel('Percentage (%)')
+    plt.title('Kubernetes Metrics Over Time (Percentage)')
     plt.xticks(rotation=45)
     plt.tight_layout()
-    
+
     buf = BytesIO()
     plt.savefig(buf, format='png')
     buf.seek(0)
     encoded_image = base64.b64encode(buf.read()).decode('utf-8')
     plt.close(fig)
     return encoded_image
+
 
 def save_report_history(history_file, data):
     console.log("[cyan]Saving report history...[/cyan]")
