@@ -126,6 +126,14 @@
             gap: 4%;
             justify-content: space-between;
         }
+        details pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 200px;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -220,7 +228,7 @@
                         <strong>Status:</strong> {{ node.status }}<br>
                         <details>
                             <summary>Details</summary>
-                            <pre>{{ node.description }}</pre>
+                            <pre><code>{{ node.description }}</code></pre>
                         </details>
                     </div>
                 {% endfor %}
