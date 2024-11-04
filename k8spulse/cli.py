@@ -249,15 +249,14 @@ def generate_line_chart(history_df):
     plt.close(fig)
     return encoded_image
 
-# Function to save report history
 def save_report_history(history_file, data):
     console.log("[cyan]Saving report history...[/cyan]")
-    columns = ['timestamp', 'total_deployments', 'deployments_with_replicas', 'deployments_with_zero_replicas', 'pods_with_crashloopbackoff', 'nodes_with_issues']
+    columns = ['timestamp', 'total_deployments', 'deployments_with_replicas', 'deployments_with_zero_replicas', 'deployments_with_exact_replicas', 'pods_with_crashloopbackoff', 'deployments_with_recent_start', 'nodes_with_issues']
     if not os.path.exists(history_file):
         with open(history_file, 'w') as f:
             f.write(','.join(columns) + '\n')
     with open(history_file, 'a') as f:
-        f.write(f"{data['timestamp']},{data['total_deployments']},{data['deployments_with_replicas']},{data['deployments_with_zero_replicas']},{data['pods_with_crashloopbackoff']},{len(data['nodes_with_issues'])}\n")
+        f.write(f"{data['timestamp']},{data['total_deployments']},{data['deployments_with_replicas']},{data['deployments_with_zero_replicas']},{data['deployments_with_exact_replicas']},{data['pods_with_crashloopbackoff']},{data['deployments_with_recent_start']},{len(data['nodes_with_issues'])}\n")
 
 def load_report_history(history_file):
     console.log("[cyan]Loading report history...[/cyan]")
@@ -266,7 +265,7 @@ def load_report_history(history_file):
         return pd.DataFrame(columns=[
             'timestamp', 'total_deployments', 'deployments_with_replicas', 
             'deployments_with_zero_replicas', 'deployments_with_exact_replicas', 
-            'pods_with_crashloopbackoff', 'pods_recently_restarted', 'nodes_with_issues'
+            'pods_with_crashloopbackoff', 'deployments_with_recent_start', 'nodes_with_issues'
         ])
     return pd.read_csv(history_file)
 
@@ -331,8 +330,6 @@ def cli(env_name, interval, use_ai, git_commit):
         gauge_chart_recently_restarted = generate_dial_gauge_chart(deployments_with_recent_start, 'Restarted')  # Placeholder
         line_chart_image = generate_line_chart(history_df)
 
-        history_data = prepare_history_data_for_template(history_file)
-
         context = {
             'env_name': env_name,
             'timestamp': data['timestamp'],
@@ -352,7 +349,7 @@ def cli(env_name, interval, use_ai, git_commit):
             'gauge_chart_recently_restarted': gauge_chart_recently_restarted,
             'line_chart_image': line_chart_image,
             'use_ai': use_ai,
-            'history_data': history_data, 
+            'history_data': prepare_history_data_for_template(history_file), 
         }
         
         # Generate HTML report

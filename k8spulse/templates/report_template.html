@@ -169,23 +169,23 @@
         <!-- Gauges -->
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_deployments_with_replicas }}" alt="Deployments with Replicas">
-            <div>({{ deployments_with_replicas }})</div>
+            <div>({{ (deployments_with_replicas / total_deployments * 100) | round(2) }}%) ({{ deployments_with_replicas }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_deployments_zero_replicas }}" alt="Deployments with Zero Replicas">
-            <div>({{ deployments_with_zero_replicas }})</div>
+            <div>({{ (deployments_with_zero_replicas / total_deployments * 100) | round(2) }}%) ({{ deployments_with_zero_replicas }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_exact_replicas }}" alt="Deployments with Exact Replicas">
-            <div>({{ deployments_with_exact_replicas }})</div>
+            <div>({{ (deployments_with_exact_replicas / total_deployments * 100) | round(2) }}%) ({{ deployments_with_exact_replicas }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_crashloopbackoff }}" alt="Pods in CrashLoopBackOff">
-            <div>({{ pods_with_crashloopbackoff }})</div>
+            <div>({{ (pods_with_crashloopbackoff / total_deployments * 100) | round(2) }}%) ({{ pods_with_crashloopbackoff }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_recently_restarted }}" alt="Recently Restarted Pods">
-            <div>({{ deployments_with_exact_replicas }})</div>
+            <div>({{ (deployments_with_recent_start / total_deployments * 100) | round(2) }}%) ({{ deployments_with_recent_start }})</div>
         </div>
     </div>
 
@@ -266,7 +266,7 @@
                 <td>{{ row.deployments_with_zero_replicas }}</td>
                 <td>{{ row.deployments_with_exact_replicas }}</td>
                 <td>{{ row.pods_with_crashloopbackoff }}</td>
-                <td>{{ row.pods_recently_restarted }}</td>
+                <td>{{ row.deployments_with_recent_start }}</td>
                 <td>{{ row.nodes_with_issues }}</td>
             </tr>
         {% endfor %}
