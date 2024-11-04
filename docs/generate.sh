@@ -584,55 +584,56 @@ while true; do
     fi
 
     recommendation=""
-  fi
-  # Iterar hasta que el run esté completo
-  while true; do
-    sleep 5  # Esperar unos segundos antes de intentar obtener la respuesta
 
-    # Obtener el estado del run
-    run_status_response=$(curl -s "https://api.openai.com/v1/threads/$thread_id/runs/$run_id" \
+    # Iterar hasta que el run esté completo
+    while true; do
+      sleep 5  # Esperar unos segundos antes de intentar obtener la respuesta
+
+      # Obtener el estado del run
+      run_status_response=$(curl -s "https://api.openai.com/v1/threads/$thread_id/runs/$run_id" \
+        -H "Authorization: Bearer $OPENAI_API_KEY" \
+        -H "OpenAI-Beta: assistants=v2")
+
+      # Verificar si el run está completo
+      status=$(echo "$run_status_response" | jq -r '.status')
+
+      if [ "$status" = "completed" ]; then
+        break
+      elif [ "$status" = "failed" ]; then
+        red "Error: El run ha fallado."
+        exit 1
+      fi
+    done
+
+    # Obtener todos los mensajes del thread
+    messages_response=$(curl -s "https://api.openai.com/v1/threads/$thread_id/messages" \
+      -H "Content-Type: application/json" \
       -H "Authorization: Bearer $OPENAI_API_KEY" \
       -H "OpenAI-Beta: assistants=v2")
 
-    # Verificar si el run está completo
-    status=$(echo "$run_status_response" | jq -r '.status')
+    # Obtener el contenido del último mensaje (suponiendo que el mensaje generado por el asistente es el último)
+    recommendation=$(echo "$messages_response" | jq -r '.data[0].content[0].text.value')
 
-    if [ "$status" = "completed" ]; then
-      break
-    elif [ "$status" = "failed" ]; then
-      red "Error: El run ha fallado."
+    if [ -z "$recommendation" ] || [ "$recommendation" = "null" ]; then
+      red "Error: No se pudo obtener la recomendación del asistente."
       exit 1
     fi
-  done
 
-  # Obtener todos los mensajes del thread
-  messages_response=$(curl -s "https://api.openai.com/v1/threads/$thread_id/messages" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $OPENAI_API_KEY" \
-    -H "OpenAI-Beta: assistants=v2")
+    recommendation_div="<div class='card' style='max-height: 200px; overflow-y: auto; overflow-x: hidden;'>
+    <pre style='white-space: pre-wrap; word-wrap: break-word;'>
+      <code class='markdown'>$recommendation</code>
+    </pre>
+  </div>"
 
-  # Obtener el contenido del último mensaje (suponiendo que el mensaje generado por el asistente es el último)
-  recommendation=$(echo "$messages_response" | jq -r '.data[0].content[0].text.value')
-
-  if [ -z "$recommendation" ] || [ "$recommendation" = "null" ]; then
-    red "Error: No se pudo obtener la recomendación del asistente."
-    exit 1
+    # Leer el archivo y reemplazar el placeholder
+    while IFS= read -r line; do
+        if [[ "$line" == *"<div id='openai-recommendation-placeholder'></div>"* ]]; then
+            printf "%s\n" "$recommendation_div"
+        else
+            printf "%s\n" "$line"
+        fi
+    done < "$REPORT_FILE" > temp.html && mv temp.html "$REPORT_FILE"
   fi
-
-  recommendation_div="<div class='card' style='max-height: 200px; overflow-y: auto; overflow-x: hidden;'>
-  <pre style='white-space: pre-wrap; word-wrap: break-word;'>
-    <code class='markdown'>$recommendation</code>
-  </pre>
-</div>"
-
-  # Leer el archivo y reemplazar el placeholder
-  while IFS= read -r line; do
-      if [[ "$line" == *"<div id='openai-recommendation-placeholder'></div>"* ]]; then
-          printf "%s\n" "$recommendation_div"
-      else
-          printf "%s\n" "$line"
-      fi
-  done < "$REPORT_FILE" > temp.html && mv temp.html "$REPORT_FILE"
 
   # Perform git add, commit, and push for all files if --git-commit is present
   if [ "$GIT_COMMIT" = true ]; then
@@ -640,7 +641,6 @@ while true; do
     git commit -m "$ENV_NAME statistics update"
     git push
   fi
-
   # Wait five minutes before the next run
   yellow "Wait $INTERVAL ..."
   sleep $INTERVAL
