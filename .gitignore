@@ -298,3 +298,4 @@ dist
 
 node_modules
 *.log
+*.csv

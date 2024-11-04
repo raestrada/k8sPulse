@@ -30,6 +30,25 @@
         .gauge-container, .semaphore-container {
             text-align: center;
         }
+        .semaphore-container, .gauge-container {
+            flex: 1;
+        }
+        .semaphore-container {
+            text-align: left;
+            padding-left: 20px;
+            max-width: 150px;
+        }
+        .semaphore-container .status-box {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            max-width: 130px;
+        }
+        .semaphore-container .status-box:hover {
+            overflow: visible;
+            white-space: normal;
+        }
         .chart {
             text-align: center;
             display: inline-block;
@@ -87,9 +106,20 @@
         .status-warning {
             background-color: orange;
         }
-        .gauge-container img {
-            width: 50%;
+        .gauge-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            max-width: 80px;
+        }
+        .gauge img {
+            width: 100%;
+            max-width: 120px;
             height: auto;
+        }
+        .gauge-title {
+            font-size: 10px;
         }
     </style>
 </head>
@@ -103,38 +133,46 @@
             <h3>Service Status Indicators</h3>
             <div class="status-box">
                 <div class="status-indicator {{ 'status-ok' if metrics_server_status else 'status-error' }}"></div>
-                Metrics Server: {{ 'OK' if metrics_server_status else 'Error' }}
+                Metrics Server
             </div>
             <div class="status-box">
                 <div class="status-indicator {{ 'status-ok' if kube_dns_status else 'status-error' }}"></div>
-                Kube-DNS: {{ 'OK' if kube_dns_status else 'Error' }}
+                Kube-DNS
             </div>
             <div class="status-box">
                 <div class="status-indicator {{ 'status-ok' if cast_ai_agent_status else 'status-error' }}"></div>
-                CAST AI Agent: {{ 'OK' if cast_ai_agent_status else 'Error' }}
+                CAST AI Agent
+            </div>
+            <div class="status-box">
+                <div class="status-indicator {{ 'status-ok' if cast_ai_workload_autoscaler_status else 'status-error' }}"></div>
+                CAST AI Workload Autoscaler
+            </div>
+            <div class="status-box">
+                <div class="status-indicator {{ 'status-ok' if cast_ai_cluster_controller_status else 'status-error' }}"></div>
+                CAST AI Cluster Controller
             </div>
         </div>
 
         <!-- Gauges -->
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_deployments_with_replicas }}" alt="Deployments with Replicas">
-            <div>Deployments with Replicas ({{ deployments_with_replicas }})</div>
+            <div>({{ deployments_with_replicas }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_deployments_zero_replicas }}" alt="Deployments with Zero Replicas">
-            <div>Deployments with Zero Replicas ({{ deployments_with_zero_replicas }})</div>
+            <div>({{ deployments_with_zero_replicas }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_exact_replicas }}" alt="Deployments with Exact Replicas">
-            <div>Deployments with Exact Replicas ({{ deployments_with_exact_replicas }})</div>
+            <div>({{ deployments_with_exact_replicas }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_crashloopbackoff }}" alt="Pods in CrashLoopBackOff">
-            <div>Pods in CrashLoopBackOff ({{ pods_with_crashloopbackoff }})</div>
+            <div>({{ pods_with_crashloopbackoff }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_recently_restarted }}" alt="Recently Restarted Pods">
-            <div>Recently Restarted Pods ({{ pods_recently_restarted }})</div>
+            <div>({{ pods_recently_restarted }})</div>
         </div>
     </div>
 

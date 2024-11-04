@@ -13,7 +13,6 @@ import pandas as pd
 from kubernetes import client, config
 from collections import defaultdict
 from rich.console import Console
-from rich.progress import track
 import subprocess
 
 console = Console()
@@ -98,10 +97,63 @@ def get_unusual_events():
     sorted_events = sorted(event_summary.values(), key=lambda x: x['count'], reverse=True)
     return sorted_events[:50]
 
+def get_semaphore_status():
+    console.log("[cyan]Fetching status of Kubernetes services...[/cyan]")
+    apps_v1 = client.AppsV1Api()
+    statuses = {
+        'metrics_server_status': False,
+        'kube_dns_status': False,
+        'cast_ai_agent_status': False,
+        'cast_ai_workload_autoscaler_status': False,
+        'cast_ai_cluster_controller_status': False
+    }
+    
+    # Metrics Server
+    try:
+        metrics_server = apps_v1.read_namespaced_deployment(name='metrics-server-v1.30.3', namespace='kube-system')
+        if metrics_server.status.ready_replicas and metrics_server.status.ready_replicas > 0:
+            statuses['metrics_server_status'] = True
+    except client.exceptions.ApiException:
+        console.log("[red]Error fetching metrics-server status[/red]")
+
+    # Kube-DNS
+    try:
+        kube_dns = apps_v1.read_namespaced_deployment(name='kube-dns', namespace='kube-system')
+        if kube_dns.status.ready_replicas and kube_dns.status.ready_replicas > 0:
+            statuses['kube_dns_status'] = True
+    except client.exceptions.ApiException:
+        console.log("[red]Error fetching kube-dns status[/red]")
+
+    # CAST AI Agent
+    try:
+        cast_ai_agent = apps_v1.read_namespaced_deployment(name='castai-agent', namespace='castai-agent')
+        if cast_ai_agent.status.ready_replicas and cast_ai_agent.status.ready_replicas > 0:
+            statuses['cast_ai_agent_status'] = True
+    except client.exceptions.ApiException:
+        console.log("[red]Error fetching castai-agent status[/red]")
+
+    # CAST AI Workload Autoscaler
+    try:
+        cast_ai_workload_autoscaler = apps_v1.read_namespaced_deployment(name='castai-workload-autoscaler', namespace='castai-agent')
+        if cast_ai_workload_autoscaler.status.ready_replicas and cast_ai_workload_autoscaler.status.ready_replicas > 0:
+            statuses['cast_ai_workload_autoscaler_status'] = True
+    except client.exceptions.ApiException:
+        console.log("[red]Error fetching castai-workload-autoscaler status[/red]")
+
+    # CAST AI Cluster Controller
+    try:
+        cast_ai_cluster_controller = apps_v1.read_namespaced_deployment(name='castai-cluster-controller', namespace='castai-agent')
+        if cast_ai_cluster_controller.status.ready_replicas and cast_ai_cluster_controller.status.ready_replicas > 0:
+            statuses['cast_ai_cluster_controller_status'] = True
+    except client.exceptions.ApiException:
+        console.log("[red]Error fetching castai-cluster-controller status[/red]")
+
+    return statuses
+
 # Function to generate gauge chart images and encode them in base64
 def generate_dial_gauge_chart(value, title, min_value=0, max_value=100):
     console.log(f"[cyan]Generating dial gauge chart for {title}...[/cyan]")
-    fig, ax = plt.subplots(figsize=(2.5, 1.25), subplot_kw={'aspect': 'equal'})  # Reduce figure size
+    fig, ax = plt.subplots(figsize=(5, 2.5), subplot_kw={'aspect': 'equal'})  # Restore original figure size
 
     # Determine wedge parameters based on value
     theta = (value - min_value) / (max_value - min_value) * 180  # Scale to half-circle (0° to 180°)
@@ -114,8 +166,8 @@ def generate_dial_gauge_chart(value, title, min_value=0, max_value=100):
     ax.axis('off')  # Hide the axes
 
     # Add title and value labels
-    plt.text(0, -1.3, title, ha='center', va='center', fontsize=10)  # Reduce font size for title
-    plt.text(0, 0.2, f"{value}%", ha='center', va='center', fontsize=12, fontweight='bold')  # Reduce font size for value
+    plt.text(0, -1.3, title, ha='center', va='center', fontsize=12)  # Restore original font size for title
+    plt.text(0, 0.2, f"{value}%", ha='center', va='center', fontsize=14, fontweight='bold')  # Restore original font size for value
 
     plt.tight_layout()
     
@@ -164,51 +216,6 @@ def load_report_history(history_file):
         return pd.DataFrame(columns=['timestamp', 'total_deployments', 'deployments_with_replicas', 'deployments_with_zero_replicas', 'pods_with_crashloopbackoff', 'nodes_with_issues'])
     return pd.read_csv(history_file)
 
-# Function to interact with OpenAI API and get recommendations
-def get_openai_recommendation(report_content):
-    console.log("[cyan]Requesting recommendation from OpenAI...[/cyan]")
-    openai_api_key = os.getenv('OPENAI_API_KEY')
-    if not openai_api_key:
-        console.log("[red]Error: OPENAI_API_KEY environment variable is not set.[/red]")
-        return ""
-
-    openai.api_key = openai_api_key
-    try:
-        # Create a new thread
-        thread_response = openai.Thread.create(
-            instructions="You are an assistant that provides actionable recommendations based on Kubernetes cluster reports.",
-            model="gpt-4"
-        )
-        thread_id = thread_response['id']
-
-        # Upload the report content to OpenAI
-        message_response = openai.Message.create(
-            thread_id=thread_id,
-            role="user",
-            content=f"Here is a Kubernetes cluster report: {report_content}. Please provide a concise and actionable recommendation to improve the overall health of the cluster."
-        )
-
-        # Run the assistant on the thread
-        run_response = openai.Thread.run(
-            thread_id=thread_id
-        )
-        run_id = run_response['id']
-
-        # Wait for the run to complete and fetch the result
-        while True:
-            run_status = openai.Thread.run_status(thread_id=thread_id, run_id=run_id)
-            if run_status['status'] == 'completed':
-                break
-            time.sleep(5)
-
-        # Retrieve the final message from the assistant
-        messages = openai.Thread.messages(thread_id=thread_id)
-        recommendation = messages[0]['content'] if messages else ""
-        return recommendation
-    except openai.error.OpenAIError as e:
-        console.log(f"[red]Error: OpenAI API request failed: {str(e)}[/red]")
-        return ""
-
 # Render the HTML report
 def render_html_report(template_name, context):
     console.log("[cyan]Rendering HTML report...[/cyan]")
@@ -236,7 +243,8 @@ def cli(env_name, interval, use_ai, git_commit):
         pods_with_crashloopbackoff = get_pods_with_crashloopbackoff()
         nodes_with_issues = get_nodes_with_issues()
         unusual_events = get_unusual_events()
-        
+        semaphore_statuses = get_semaphore_status()
+
         # Save report history
         data = {
             'timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -252,14 +260,11 @@ def cli(env_name, interval, use_ai, git_commit):
         history_df = load_report_history(history_file)
         
         # Generate charts using dial gauges
-        gauge_chart_metrics_server = generate_dial_gauge_chart(90, 'Metrics Server Status')  # Example value
-        gauge_chart_kube_dns = generate_dial_gauge_chart(85, 'Kube-DNS Status')  # Example value
-        gauge_chart_cast_agent = generate_dial_gauge_chart(75, 'CAST AI Agent Status')  # Example value
-        gauge_chart_deployments_with_replicas = generate_dial_gauge_chart(deployments_with_replicas, 'Deployments with Replicas', max_value=total_deployments)
-        gauge_chart_deployments_zero_replicas = generate_dial_gauge_chart(deployments_with_zero_replicas, 'Deployments with Zero Replicas', max_value=total_deployments)
-        gauge_chart_exact_replicas = generate_dial_gauge_chart(deployments_with_replicas, 'Deployments with Exact Replicas', max_value=total_deployments)  # Example calculation
-        gauge_chart_crashloopbackoff = generate_dial_gauge_chart(pods_with_crashloopbackoff, 'Pods in CrashLoopBackOff')
-        gauge_chart_recently_restarted = generate_dial_gauge_chart(0, 'Recently Restarted Pods')  # Placeholder
+        gauge_chart_deployments_with_replicas = generate_dial_gauge_chart(deployments_with_replicas, 'With Replicas', max_value=total_deployments)
+        gauge_chart_deployments_zero_replicas = generate_dial_gauge_chart(deployments_with_zero_replicas, 'Zero Replicas', max_value=total_deployments)
+        gauge_chart_exact_replicas = generate_dial_gauge_chart(deployments_with_replicas, 'Exact Replicas', max_value=total_deployments)  # Example calculation
+        gauge_chart_crashloopbackoff = generate_dial_gauge_chart(pods_with_crashloopbackoff, 'CrashLoopBackOff')
+        gauge_chart_recently_restarted = generate_dial_gauge_chart(0, 'Restarted')  # Placeholder
         line_chart_image = generate_line_chart(history_df)
         
         context = {
@@ -271,12 +276,7 @@ def cli(env_name, interval, use_ai, git_commit):
             'pods_with_crashloopbackoff': pods_with_crashloopbackoff,
             'nodes_with_issues': nodes_with_issues,
             'unusual_events': unusual_events,
-            'metrics_server_status': True,  # Placeholder
-            'kube_dns_status': True,        # Placeholder
-            'cast_ai_agent_status': True,   # Placeholder
-            'gauge_chart_metrics_server': gauge_chart_metrics_server,
-            'gauge_chart_kube_dns': gauge_chart_kube_dns,
-            'gauge_chart_cast_agent': gauge_chart_cast_agent,
+            **semaphore_statuses,  # Merge semaphore statuses into the context
             'gauge_chart_deployments_with_replicas': gauge_chart_deployments_with_replicas,
             'gauge_chart_deployments_zero_replicas': gauge_chart_deployments_zero_replicas,
             'gauge_chart_exact_replicas': gauge_chart_exact_replicas,
@@ -292,17 +292,6 @@ def cli(env_name, interval, use_ai, git_commit):
             f.write(rendered_html)
         
         console.log(f"[green]Report saved to {report_file}[/green]")
-        
-        # Get recommendation from OpenAI if use_ai is enabled
-        if use_ai:
-            report_summary = f"Total Deployments: {total_deployments}, Deployments with Replicas: {deployments_with_replicas}, Deployments with Zero Replicas: {deployments_with_zero_replicas}, Pods in CrashLoopBackOff: {pods_with_crashloopbackoff}, Nodes with Issues: {len(nodes_with_issues)}"
-            recommendation = get_openai_recommendation(report_summary)
-            if recommendation:
-                context['openai_recommendation'] = recommendation
-                rendered_html = render_html_report(template_name, context)
-                with open(report_file, 'w') as f:
-                    f.write(rendered_html)
-                console.log(f"[green]Updated report with OpenAI recommendation saved to {report_file}[/green]")
         
         # Commit and push to git if enabled
         if git_commit:
