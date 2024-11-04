@@ -4,6 +4,7 @@ import click
 from jinja2 import Environment, FileSystemLoader
 import yaml
 import datetime
+from datetime import datetime, timedelta, timezone
 import matplotlib.pyplot as plt
 from matplotlib.patches import Wedge
 import base64
@@ -41,6 +42,17 @@ def get_deployments_with_replicas():
             count += 1
     return count
 
+def get_deployments_with_exact_replicas():
+    console.log("[cyan]Counting deployments with exactly desired replicas...[/cyan]")
+    apps_v1 = client.AppsV1Api()
+    deployments = apps_v1.list_deployment_for_all_namespaces()
+    count = 0
+    for deployment in deployments.items:
+        if deployment.status.ready_replicas is not None and deployment.status.ready_replicas == deployment.spec.replicas:
+            count += 1
+    return count
+
+
 def get_deployments_with_zero_replicas():
     console.log("[cyan]Counting deployments with zero replicas...[/cyan]")
     apps_v1 = client.AppsV1Api()
@@ -50,6 +62,39 @@ def get_deployments_with_zero_replicas():
         if not deployment.status.ready_replicas or deployment.status.ready_replicas == 0:
             count += 1
     return count
+
+from datetime import datetime, timedelta
+
+from datetime import datetime, timedelta
+
+def get_deployments_with_recent_restarts():
+    console.log("[cyan]Counting deployments with pods recently restarted (last 10 minutes)...[/cyan]")
+    core_v1 = client.CoreV1Api()
+    now = datetime.now(timezone.utc)  # Cambiado a un objeto datetime con zona horaria UTC
+    ten_minutes_ago = now - timedelta(minutes=10)
+
+    pods = core_v1.list_pod_for_all_namespaces()
+    deployment_names = set()  # Usaremos un conjunto para evitar duplicados
+
+    for pod in pods.items:
+        if pod.status.container_statuses:
+            for container_status in pod.status.container_statuses:
+                if container_status.restart_count > 0 and container_status.state.terminated:
+                    last_restart_time = container_status.state.terminated.finished_at
+                    if last_restart_time:
+                        # Asegurarse de que last_restart_time tenga información de zona horaria
+                        last_restart_time = last_restart_time.astimezone(timezone.utc)
+                        if last_restart_time >= ten_minutes_ago:
+                            # Añadir el nombre del deployment relacionado al conjunto
+                            owner_references = pod.metadata.owner_references
+                            if owner_references:
+                                for owner in owner_references:
+                                    if owner.kind == "ReplicaSet":
+                                        deployment_name = owner.name.rsplit("-", 1)[0]  # Obtener el nombre del deployment sin el sufijo del ReplicaSet
+                                        deployment_names.add(deployment_name)
+
+    return len(deployment_names)
+
 
 def get_pods_with_crashloopbackoff():
     console.log("[cyan]Counting pods in CrashLoopBackOff state...[/cyan]")
@@ -245,6 +290,8 @@ def cli(env_name, interval, use_ai, git_commit):
         total_deployments = get_deployments_count()
         deployments_with_replicas = get_deployments_with_replicas()
         deployments_with_zero_replicas = get_deployments_with_zero_replicas()
+        deployments_with_exact_replicas = get_deployments_with_exact_replicas()
+        deployments_with_recent_start = get_deployments_with_recent_restarts()
         pods_with_crashloopbackoff = get_pods_with_crashloopbackoff()
         nodes_with_issues = get_nodes_with_issues()
         unusual_events = get_unusual_events()
@@ -252,10 +299,12 @@ def cli(env_name, interval, use_ai, git_commit):
 
         # Save report history
         data = {
-            'timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'total_deployments': total_deployments,
             'deployments_with_replicas': deployments_with_replicas,
             'deployments_with_zero_replicas': deployments_with_zero_replicas,
+            'deployments_with_recent_start': deployments_with_recent_start,
+            'deployments_with_exact_replicas': deployments_with_exact_replicas,
             'pods_with_crashloopbackoff': pods_with_crashloopbackoff,
             'nodes_with_issues': nodes_with_issues
         }
@@ -267,9 +316,9 @@ def cli(env_name, interval, use_ai, git_commit):
         # Generate charts using dial gauges
         gauge_chart_deployments_with_replicas = generate_dial_gauge_chart(deployments_with_replicas, 'With Replicas', max_value=total_deployments)
         gauge_chart_deployments_zero_replicas = generate_dial_gauge_chart(deployments_with_zero_replicas, 'Zero Replicas', max_value=total_deployments)
-        gauge_chart_exact_replicas = generate_dial_gauge_chart(deployments_with_replicas, 'Exact Replicas', max_value=total_deployments)  # Example calculation
+        gauge_chart_exact_replicas = generate_dial_gauge_chart(deployments_with_exact_replicas, 'Exact Replicas', max_value=total_deployments)  # Example calculation
         gauge_chart_crashloopbackoff = generate_dial_gauge_chart(pods_with_crashloopbackoff, 'CrashLoopBackOff')
-        gauge_chart_recently_restarted = generate_dial_gauge_chart(0, 'Restarted')  # Placeholder
+        gauge_chart_recently_restarted = generate_dial_gauge_chart(deployments_with_recent_start, 'Restarted')  # Placeholder
         line_chart_image = generate_line_chart(history_df)
         
         context = {
@@ -278,6 +327,8 @@ def cli(env_name, interval, use_ai, git_commit):
             'total_deployments': total_deployments,
             'deployments_with_replicas': deployments_with_replicas,
             'deployments_with_zero_replicas': deployments_with_zero_replicas,
+            'deployments_with_recent_start': deployments_with_recent_start,
+            'deployments_with_exact_replicas': deployments_with_exact_replicas,
             'pods_with_crashloopbackoff': pods_with_crashloopbackoff,
             'nodes_with_issues': nodes_with_issues,
             'unusual_events': unusual_events,
