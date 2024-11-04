@@ -87,6 +87,10 @@
         .status-warning {
             background-color: orange;
         }
+        .gauge-container img {
+            width: 50%;
+            height: auto;
+        }
     </style>
 </head>
 <body>
@@ -114,23 +118,23 @@
         <!-- Gauges -->
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_deployments_with_replicas }}" alt="Deployments with Replicas">
-            <div>Deployments with Replicas</div>
+            <div>Deployments with Replicas ({{ deployments_with_replicas }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_deployments_zero_replicas }}" alt="Deployments with Zero Replicas">
-            <div>Deployments with Zero Replicas</div>
+            <div>Deployments with Zero Replicas ({{ deployments_with_zero_replicas }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_exact_replicas }}" alt="Deployments with Exact Replicas">
-            <div>Deployments with Exact Replicas</div>
+            <div>Deployments with Exact Replicas ({{ deployments_with_exact_replicas }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_crashloopbackoff }}" alt="Pods in CrashLoopBackOff">
-            <div>Pods in CrashLoopBackOff</div>
+            <div>Pods in CrashLoopBackOff ({{ pods_with_crashloopbackoff }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_recently_restarted }}" alt="Recently Restarted Pods">
-            <div>Recently Restarted Pods</div>
+            <div>Recently Restarted Pods ({{ pods_recently_restarted }})</div>
         </div>
     </div>
 
