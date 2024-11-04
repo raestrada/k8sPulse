@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ env_name }} Statistics Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            padding: 20px;
+        }
+        h2 {
+            color: #4caf50;
+        }
+        .card {
+            background: #fff;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .gauge-row, .chart-container {
+            display: flex;
+            gap: 20px;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .gauge-container, .semaphore-container {
+            text-align: center;
+        }
+        .chart {
+            text-align: center;
+            display: inline-block;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #4caf50;
+            color: white;
+        }
+        .events, .nodes {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+        .event {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .event-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .event-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .status-ok {
+            background-color: green;
+        }
+        .status-error {
+            background-color: red;
+        }
+        .status-warning {
+            background-color: orange;
+        }
+    </style>
+</head>
+<body>
+    <h2>{{ env_name }} Statistics Report - {{ timestamp }}</h2>
+
+    <!-- Semaphores and Gauges in the Same Row -->
+    <div class="gauge-row">
+        <!-- Semaphores -->
+        <div class="semaphore-container">
+            <h3>Service Status Indicators</h3>
+            <div class="status-box">
+                <div class="status-indicator {{ 'status-ok' if metrics_server_status else 'status-error' }}"></div>
+                Metrics Server: {{ 'OK' if metrics_server_status else 'Error' }}
+            </div>
+            <div class="status-box">
+                <div class="status-indicator {{ 'status-ok' if kube_dns_status else 'status-error' }}"></div>
+                Kube-DNS: {{ 'OK' if kube_dns_status else 'Error' }}
+            </div>
+            <div class="status-box">
+                <div class="status-indicator {{ 'status-ok' if cast_ai_agent_status else 'status-error' }}"></div>
+                CAST AI Agent: {{ 'OK' if cast_ai_agent_status else 'Error' }}
+            </div>
+        </div>
+
+        <!-- Gauges -->
+        <div class="gauge-container">
+            <img src="data:image/png;base64,{{ gauge_chart_deployments_with_replicas }}" alt="Deployments with Replicas">
+            <div>Deployments with Replicas</div>
+        </div>
+        <div class="gauge-container">
+            <img src="data:image/png;base64,{{ gauge_chart_deployments_zero_replicas }}" alt="Deployments with Zero Replicas">
+            <div>Deployments with Zero Replicas</div>
+        </div>
+        <div class="gauge-container">
+            <img src="data:image/png;base64,{{ gauge_chart_exact_replicas }}" alt="Deployments with Exact Replicas">
+            <div>Deployments with Exact Replicas</div>
+        </div>
+        <div class="gauge-container">
+            <img src="data:image/png;base64,{{ gauge_chart_crashloopbackoff }}" alt="Pods in CrashLoopBackOff">
+            <div>Pods in CrashLoopBackOff</div>
+        </div>
+        <div class="gauge-container">
+            <img src="data:image/png;base64,{{ gauge_chart_recently_restarted }}" alt="Recently Restarted Pods">
+            <div>Recently Restarted Pods</div>
+        </div>
+    </div>
+
+    <!-- Optional OpenAI Recommendation -->
+    {% if use_ai and openai_recommendation %}
+    <div class="card">
+        <h3>OpenAI Recommendation</h3>
+        <pre>{{ openai_recommendation }}</pre>
+    </div>
+    {% endif %}
+
+    <!-- Events and Nodes in the Same Row -->
+    <div class="gauge-row">
+        <!-- Unusual Events -->
+        <div class="events">
+            <h3>Unusual Events</h3>
+            {% if unusual_events %}
+                {% for event in unusual_events %}
+                    <div class="event {{ 'event-warning' if event.reason == 'Warning' else 'event-error' }}">
+                        <strong>Namespace:</strong> {{ event.namespace }}<br>
+                        <strong>Reason:</strong> {{ event.reason }}<br>
+                        <strong>Message:</strong> {{ event.message }}<br>
+                        <strong>Count:</strong> {{ event.count }}<br>
+                        <strong>First Occurrence:</strong> {{ event.first_timestamp }}<br>
+                        <strong>Last Occurrence:</strong> {{ event.last_timestamp }}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="event">No unusual events found.</div>
+            {% endif %}
+        </div>
+
+        <!-- Nodes with Issues -->
+        <div class="nodes">
+            <h3>Nodes with Issues</h3>
+            {% if nodes_with_issues %}
+                {% for node in nodes_with_issues %}
+                    <div class="event event-error">
+                        <strong>Node:</strong> {{ node.name }}<br>
+                        <strong>Status:</strong> {{ node.status }}<br>
+                        <details>
+                            <summary>Details</summary>
+                            <pre>{{ node.description }}</pre>
+                        </details>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="event">All nodes are healthy.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Line Charts -->
+    <div class="chart-container">
+        <div class="chart">
+            <img src="data:image/png;base64,{{ line_chart_image }}" alt="Deployment and Pod Statistics">
+        </div>
+    </div>
+
+    <!-- Last 24-Hour History Table -->
+    <h3>Last 24-Hour History</h3>
+    <table>
+        <tr>
+            <th>Time</th>
+            <th>Total Deployments</th>
+            <th>With Replica</th>
+            <th>No Replica</th>
+            <th>Exactly Desired</th>
+            <th>CrashLoopBackOff</th>
+            <th>Recently Restarted</th>
+            <th>Nodes with Issues</th>
+        </tr>
+        {% for row in history_data %}
+            <tr>
+                <td>{{ row.timestamp }}</td>
+                <td>{{ row.total_deployments }}</td>
+                <td>{{ row.deployments_with_replicas }}</td>
+                <td>{{ row.deployments_with_zero_replicas }}</td>
+                <td>{{ row.deployments_with_exact_replicas }}</td>
+                <td>{{ row.pods_with_crashloopbackoff }}</td>
+                <td>{{ row.pods_recently_restarted }}</td>
+                <td>{{ row.nodes_with_issues }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
