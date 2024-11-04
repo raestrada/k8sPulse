@@ -259,12 +259,22 @@ def save_report_history(history_file, data):
     with open(history_file, 'a') as f:
         f.write(f"{data['timestamp']},{data['total_deployments']},{data['deployments_with_replicas']},{data['deployments_with_zero_replicas']},{data['pods_with_crashloopbackoff']},{len(data['nodes_with_issues'])}\n")
 
-# Load history from file
 def load_report_history(history_file):
     console.log("[cyan]Loading report history...[/cyan]")
     if not os.path.exists(history_file):
-        return pd.DataFrame(columns=['timestamp', 'total_deployments', 'deployments_with_replicas', 'deployments_with_zero_replicas', 'pods_with_crashloopbackoff', 'nodes_with_issues'])
+        # Return an empty DataFrame with expected columns if the history file doesn't exist
+        return pd.DataFrame(columns=[
+            'timestamp', 'total_deployments', 'deployments_with_replicas', 
+            'deployments_with_zero_replicas', 'deployments_with_exact_replicas', 
+            'pods_with_crashloopbackoff', 'pods_recently_restarted', 'nodes_with_issues'
+        ])
     return pd.read_csv(history_file)
+
+# Convert the DataFrame to a list of dictionaries to be passed to the HTML template
+def prepare_history_data_for_template(history_file):
+    history_df = load_report_history(history_file)
+    history_data = history_df.to_dict(orient='records')
+    return history_data
 
 # Render the HTML report
 def render_html_report(template_name, context):
@@ -320,7 +330,9 @@ def cli(env_name, interval, use_ai, git_commit):
         gauge_chart_crashloopbackoff = generate_dial_gauge_chart(pods_with_crashloopbackoff, 'CrashLoopBackOff')
         gauge_chart_recently_restarted = generate_dial_gauge_chart(deployments_with_recent_start, 'Restarted')  # Placeholder
         line_chart_image = generate_line_chart(history_df)
-        
+
+        history_data = prepare_history_data_for_template(history_file)
+
         context = {
             'env_name': env_name,
             'timestamp': data['timestamp'],
@@ -339,7 +351,8 @@ def cli(env_name, interval, use_ai, git_commit):
             'gauge_chart_crashloopbackoff': gauge_chart_crashloopbackoff,
             'gauge_chart_recently_restarted': gauge_chart_recently_restarted,
             'line_chart_image': line_chart_image,
-            'use_ai': use_ai
+            'use_ai': use_ai,
+            'history_data': history_data, 
         }
         
         # Generate HTML report
