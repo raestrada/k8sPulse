@@ -330,7 +330,7 @@ def get_openai_recommendation(report_file_path):
     message_response = client.beta.threads.messages.create(
         thread_id=thread_id,
         role="user",
-        content="Attached is a Kubernetes cluster report. Please analyze it and provide a concise and actionable recommendation to improve the overall health of the cluster. Focus on issues related to deployments, pods, metrics server, and CrashLoopBackOff. Only return the result in Markdown format, without using ``` or any other code block delimiters.",
+        content="Attached is a Kubernetes cluster report. Please analyze it and provide a concise and actionable recommendation to improve the overall health of the cluster. Focus on issues related to deployments, pods, metrics server, and CrashLoopBackOff. Only return the result in HTML to put in a innerHTML format with a good style, without using ``` or any other code block delimiters.",
         attachments=[
             {
                 "file_id": file_id,
