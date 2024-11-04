@@ -152,12 +152,17 @@ def get_semaphore_status():
 
 # Function to generate gauge chart images and encode them in base64
 def generate_dial_gauge_chart(value, title, min_value=0, max_value=100):
-    console.log(f"[cyan]Generating dial gauge chart for {title}...[/cyan]")
+    # Calcular el porcentaje real basado en el valor y el valor máximo
+    percentage = (value - min_value) / (max_value - min_value) * 100
+    percentage = min(max(percentage, 0), 100)  # Limitar el porcentaje entre 0 y 100
+
+    console.log(f"[cyan]Generating dial gauge chart for {title} with {percentage}%...[/cyan]")
+    
     fig, ax = plt.subplots(figsize=(5, 2.5), subplot_kw={'aspect': 'equal'})  # Restore original figure size
 
-    # Determine wedge parameters based on value
-    theta = (value - min_value) / (max_value - min_value) * 180  # Scale to half-circle (0° to 180°)
-    wedge = Wedge(center=(0, 0), r=1, theta1=0, theta2=theta, facecolor='#4CAF50' if value >= 80 else '#FF4444', edgecolor='black')
+    # Determine wedge parameters based on percentage
+    theta = percentage / 100 * 180  # Scale to half-circle (0° to 180°)
+    wedge = Wedge(center=(0, 0), r=1, theta1=0, theta2=theta, facecolor='#4CAF50' if percentage >= 80 else '#FF4444', edgecolor='black')
 
     # Add the wedge and background to the plot
     ax.add_patch(wedge)
@@ -165,9 +170,9 @@ def generate_dial_gauge_chart(value, title, min_value=0, max_value=100):
     ax.set_ylim(-1.1, 1.1)
     ax.axis('off')  # Hide the axes
 
-    # Add title and value labels
+    # Add title and percentage labels
     plt.text(0, -1.3, title, ha='center', va='center', fontsize=12)  # Restore original font size for title
-    plt.text(0, 0.2, f"{value}%", ha='center', va='center', fontsize=14, fontweight='bold')  # Restore original font size for value
+    plt.text(0, 0.2, f"{percentage:.0f}%", ha='center', va='center', fontsize=14, fontweight='bold')  # Mostrar el porcentaje
 
     plt.tight_layout()
     
