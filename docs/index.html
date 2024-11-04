@@ -11,77 +11,58 @@
     <style>
         body {
             font-family: 'Roboto', sans-serif;
-            background-color: #f9fafb;
-            color: #334e68;
+            background: linear-gradient(135deg, #0f766e, #3b82f6, #f97316);
+            background-size: 300% 300%;
+            animation: backgroundAnimation 10s ease infinite;
+            color: #ffffff;
             margin: 0;
             padding: 20px;
             line-height: 1.6;
+            overflow-x: hidden;
         }
+
+        @keyframes backgroundAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding-bottom: 20px;
-            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 40px;
             position: relative;
         }
-        .pulse-line-header {
-            position: absolute;
-            top: -10px;
-            left: 0;
-            width: 100%;
-            height: 5px;
-            background: linear-gradient(90deg, #0f766e, #f97316, #3b82f6);
-            background-size: 300% 100%;
-            animation: pulseAnimation 6s ease infinite;
-        }
-        .pulse-line-screenshot {
-            margin-top: 20px;
-            width: 100%;
-            height: 5px;
-            background: linear-gradient(90deg, #0f766e, #f97316, #3b82f6);
-            background-size: 300% 100%;
-            animation: pulseAnimation 6s ease infinite;
-        }
-        @keyframes pulseAnimation {
-            0% {
-                background-position: 0% 50%;
-            }
-            25% {
-                background-position: 25% 50%;
-            }
-            50% {
-                background-position: 50% 50%;
-            }
-            75% {
-                background-position: 75% 50%;
-            }
-            100% {
-                background-position: 100% 50%;
-            }
-        }
+
         .logo {
             display: flex;
             align-items: center;
             gap: 15px;
         }
+
         .logo img {
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: auto;
         }
+
         .logo h1 {
-            color: #0f766e;
+            color: #ffffff;
             font-size: 2em;
             margin: 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
+
         .links {
             display: flex;
             align-items: center;
             gap: 20px;
         }
+
         .doc-link {
             text-decoration: none;
-            background-color: #3b82f6;
+            background-color: #0a306e;
             color: white;
             padding: 10px 15px;
             border-radius: 8px;
@@ -90,6 +71,7 @@
         .doc-link:hover {
             background-color: #2563eb;
         }
+
         .github-link {
             text-decoration: none;
             background-color: #0f766e;
@@ -112,47 +94,67 @@
         .release-link:hover {
             background-color: #ea580c;
         }
+
         .content {
-            margin-top: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .content h2 {
-            color: #0f766e;
-            margin-bottom: 20px;
+
+        .card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            width: 80%;
+            max-width: 800px;
+            text-align: center;
         }
+
         .screenshot {
             text-align: center;
             margin: 40px 0;
         }
+
         .screenshot img {
             max-width: 100%;
             border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            transform: scale(1);
+            transition: transform 0.3s ease-in-out;
         }
-        .instructions {
-            background: #ffffff;
-            padding: 20px;
-            margin: 20px 0;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
+
+        .screenshot img:hover {
+            transform: scale(1.05);
         }
-        code {
-            background-color: #e2e8f0;
-            padding: 8px 10px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            color: #2563eb;
-            font-weight: bold;
+
+        .footer-line {
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, #f97316, #0f766e, #3b82f6);
+            animation: backgroundAnimation 8s ease-in-out infinite;
+            margin-top: 20px;
         }
+
         footer {
             text-align: center;
             margin-top: 40px;
-            color: #64748b;
+            color: #cbd5e1;
+        }
+
+        code {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 8px 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #f97316;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <header>
-        <div class="pulse-line-header"></div>
         <div class="logo">
             <img src="https://res.cloudinary.com/dyknhuvxt/image/upload/v1730740391/k8spulse_axrf38.png" alt="k8spulse logo">
             <h1>k8sPulse</h1>
@@ -165,36 +167,41 @@
     </header>
 
     <div class="content">
-        <h2>Emergency Kubernetes Monitoring with AI Recommendations</h2>
-        <p>k8sPulse is an open-source Kubernetes monitoring tool designed for those critical moments when you only have <code>kubectl</code> access. It leverages the Python Kubernetes native client and integrates with OpenAI for intelligent recommendations. Whether it's identifying problematic deployments, spotting pods in CrashLoopBackOff, or simply getting insights from a metrics server failure, k8sPulse is here to help.</p>
-        
-        <div class="instructions">
+        <div class="card">
+            <h2>Emergency Kubernetes Monitoring with AI Recommendations</h2>
+            <p>k8sPulse is an open-source Kubernetes monitoring tool designed for those critical moments when you only have <code>kubectl</code> access. It leverages the Python Kubernetes native client and integrates with OpenAI for intelligent recommendations. Whether it's identifying problematic deployments, spotting pods in CrashLoopBackOff, or simply getting insights from a metrics server failure, k8sPulse is here to help.</p>
+        </div>
+
+        <div class="card">
             <h3>Quick Installation Guide</h3>
             <p>To install <strong>k8sPulse</strong> using <code>pipx</code>, simply run the following command:</p>
             <code>pipx install git+https://github.com/raestrada/k8sPulse.git@v0.1.0</code>
         </div>
 
-        <div class="pulse-line-screenshot"></div>
+        <div class="footer-line"></div>
 
         <div class="screenshot">
             <h3>See k8sPulse in Action</h3>
             <img src="https://res.cloudinary.com/dyknhuvxt/image/upload/v1730741959/Captura_de_pantalla_2024-11-04_a_la_s_14.39.08_flhkbc.png" alt="k8sPulse Dashboard Screenshot">
         </div>
 
-        <h3>Key Features</h3>
-        <ul>
-            <li><strong>OpenAI Recommendations:</strong> Get actionable recommendations on how to improve your cluster's health.</li>
-            <li><strong>Native Kubernetes Client:</strong> Uses Python's official Kubernetes client for seamless integration.</li>
-            <li><strong>Modern UI:</strong> Sleek and informative interface to easily visualize key metrics and identify issues.</li>
-        </ul>
+        <div class="card">
+            <h3>Key Features</h3>
+            <ul>
+                <li><strong>OpenAI Recommendations:</strong> Get actionable recommendations on how to improve your cluster's health.</li>
+                <li><strong>Native Kubernetes Client:</strong> Uses Python's official Kubernetes client for seamless integration.</li>
+                <li><strong>Modern UI:</strong> Sleek and informative interface to easily visualize key metrics and identify issues.</li>
+            </ul>
+        </div>
 
-        <div class="instructions">
+        <div class="card">
             <h3>Documentation</h3>
             <p>To learn more about how to use <strong>k8sPulse</strong>, visit the <a href="docs.html">documentation page</a>.</p>
         </div>
     </div>
 
     <footer>
+        <div class="footer-line"></div>
         <p>Contribute on <a href="https://github.com/raestrada/k8sPulse" target="_blank">GitHub</a> - Open Source for the community</p>
     </footer>
 </body>
