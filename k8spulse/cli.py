@@ -5,6 +5,7 @@ from jinja2 import Environment, FileSystemLoader
 import yaml
 import datetime
 import matplotlib.pyplot as plt
+from matplotlib.patches import Wedge
 import base64
 from io import BytesIO
 import openai
@@ -13,6 +14,7 @@ from kubernetes import client, config
 from collections import defaultdict
 from rich.console import Console
 from rich.progress import track
+import subprocess
 
 console = Console()
 
@@ -97,18 +99,28 @@ def get_unusual_events():
     return sorted_events[:50]
 
 # Function to generate gauge chart images and encode them in base64
-def generate_gauge_chart(value, title, min_value=0, max_value=100):
-    console.log(f"[cyan]Generating gauge chart for {title}...[/cyan]")
-    fig, ax = plt.subplots()
-    ax.set_xlim(min_value, max_value)
-    ax.barh([0], [value], color='#4CAF50' if value >= 80 else '#FF4444')
-    ax.set_yticks([])
-    ax.set_title(title)
-    ax.set_xlabel('Percentage')
+def generate_dial_gauge_chart(value, title, min_value=0, max_value=100):
+    console.log(f"[cyan]Generating dial gauge chart for {title}...[/cyan]")
+    fig, ax = plt.subplots(figsize=(2.5, 1.25), subplot_kw={'aspect': 'equal'})  # Reduce figure size
+
+    # Determine wedge parameters based on value
+    theta = (value - min_value) / (max_value - min_value) * 180  # Scale to half-circle (0° to 180°)
+    wedge = Wedge(center=(0, 0), r=1, theta1=0, theta2=theta, facecolor='#4CAF50' if value >= 80 else '#FF4444', edgecolor='black')
+
+    # Add the wedge and background to the plot
+    ax.add_patch(wedge)
+    ax.set_xlim(-1.1, 1.1)
+    ax.set_ylim(-1.1, 1.1)
+    ax.axis('off')  # Hide the axes
+
+    # Add title and value labels
+    plt.text(0, -1.3, title, ha='center', va='center', fontsize=10)  # Reduce font size for title
+    plt.text(0, 0.2, f"{value}%", ha='center', va='center', fontsize=12, fontweight='bold')  # Reduce font size for value
+
     plt.tight_layout()
     
     buf = BytesIO()
-    plt.savefig(buf, format='png')
+    plt.savefig(buf, format='png', transparent=True)
     buf.seek(0)
     encoded_image = base64.b64encode(buf.read()).decode('utf-8')
     plt.close(fig)
@@ -239,15 +251,15 @@ def cli(env_name, interval, use_ai, git_commit):
         # Load history data for generating charts
         history_df = load_report_history(history_file)
         
-        # Generate charts
-        gauge_chart_metrics_server = generate_gauge_chart(90, 'Metrics Server Status')  # Example value
-        gauge_chart_kube_dns = generate_gauge_chart(85, 'Kube-DNS Status')  # Example value
-        gauge_chart_cast_agent = generate_gauge_chart(75, 'CAST AI Agent Status')  # Example value
-        gauge_chart_deployments_with_replicas = generate_gauge_chart(deployments_with_replicas, 'Deployments with Replicas', max_value=total_deployments)
-        gauge_chart_deployments_zero_replicas = generate_gauge_chart(deployments_with_zero_replicas, 'Deployments with Zero Replicas', max_value=total_deployments)
-        gauge_chart_exact_replicas = generate_gauge_chart(deployments_with_replicas, 'Deployments with Exact Replicas', max_value=total_deployments)  # Example calculation
-        gauge_chart_crashloopbackoff = generate_gauge_chart(pods_with_crashloopbackoff, 'Pods in CrashLoopBackOff')
-        gauge_chart_recently_restarted = generate_gauge_chart(0, 'Recently Restarted Pods')  # Placeholder
+        # Generate charts using dial gauges
+        gauge_chart_metrics_server = generate_dial_gauge_chart(90, 'Metrics Server Status')  # Example value
+        gauge_chart_kube_dns = generate_dial_gauge_chart(85, 'Kube-DNS Status')  # Example value
+        gauge_chart_cast_agent = generate_dial_gauge_chart(75, 'CAST AI Agent Status')  # Example value
+        gauge_chart_deployments_with_replicas = generate_dial_gauge_chart(deployments_with_replicas, 'Deployments with Replicas', max_value=total_deployments)
+        gauge_chart_deployments_zero_replicas = generate_dial_gauge_chart(deployments_with_zero_replicas, 'Deployments with Zero Replicas', max_value=total_deployments)
+        gauge_chart_exact_replicas = generate_dial_gauge_chart(deployments_with_replicas, 'Deployments with Exact Replicas', max_value=total_deployments)  # Example calculation
+        gauge_chart_crashloopbackoff = generate_dial_gauge_chart(pods_with_crashloopbackoff, 'Pods in CrashLoopBackOff')
+        gauge_chart_recently_restarted = generate_dial_gauge_chart(0, 'Recently Restarted Pods')  # Placeholder
         line_chart_image = generate_line_chart(history_df)
         
         context = {

@@ -1,3 +1,5 @@
 timestamp,total_deployments,deployments_with_replicas,deployments_with_zero_replicas,pods_with_crashloopbackoff,nodes_with_issues
 2024-11-04 10:21:53,703,647,56,50,0
 2024-11-04 10:37:08,703,646,57,46,0
+2024-11-04 10:40:05,703,647,56,42,0
+2024-11-04 10:42:21,703,646,57,39,0
