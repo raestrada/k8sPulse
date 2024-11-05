@@ -450,7 +450,9 @@ def load_report_history(history_file):
 # Convert the DataFrame to a list of dictionaries to be passed to the HTML template
 def prepare_history_data_for_template(history_file):
     history_df = load_report_history(history_file)
-    history_data = history_df.to_dict(orient="records")
+    history_df = history_df.set_index('timestamp')  # Establecer 'timestamp' como el índice
+    history_df = history_df.sort_index(ascending=False)  # Ordenar de más reciente a más viejo
+    history_data = history_df.reset_index().to_dict(orient="records")  # Restaurar el índice para pasar al template
     return history_data
 
 
