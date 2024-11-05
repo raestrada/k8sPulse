@@ -17,7 +17,6 @@ plugins:
 exclude:
   - Gemfile
   - Gemfile.lock
-  - README.md
 
 # Configuración del layout por defecto
 defaults:
