@@ -128,8 +128,13 @@ done <<< "$(echo -e "$selected_pods")"
                 parts = line.split(", ")
                 process_info = {}
                 for part in parts:
-                    key, value = part.split(": ")[1].split("=", 1)
-                    process_info[key.lower()] = value
+                    # Parsing each part to handle cases where there might not be enough values
+                    try:
+                      key, value = part.split(": ")[1].split("=", 1)
+                      process_info[key.lower()] = value
+                    except (ValueError, IndexError):
+                      console.log("[red]Warning: Couldn't unpack part, skipping - Content: {}[/red]".format(part))
+
                 zombie_processes.append(process_info)
 
     console.log(f"[green]Se encontraron {len(zombie_processes)} procesos zombies.[/green]")
