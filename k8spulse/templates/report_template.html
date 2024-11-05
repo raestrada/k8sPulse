@@ -214,8 +214,8 @@
         </div>
     {% endif %}
 
-    <!-- Events and Nodes in the Same Row -->
-    <div class="events-nodes-row">
+       <!-- Events, Nodes, and Zombies in the Same Row -->
+       <div class="events-nodes-row">
         <!-- Unusual Events -->
         <div class="events">
             <h3>Unusual Events</h3>
@@ -253,6 +253,27 @@
                 <div class="event">All nodes are healthy.</div>
             {% endif %}
         </div>
+
+        {% if zombies %}
+            <div class="nodes">
+                <h3>Zombie Processes</h3>
+                {% if zombies_processes %}
+                    {% for zombie in zombies_processes %}
+                        <div class="event event-error">
+                            <strong>Namespace:</strong> {{ zombie.namespace }}<br>
+                            <strong>Pod:</strong> {{ zombie.pod }}<br>
+                            <strong>Container:</strong> {{ zombie.container }}<br>
+                            <strong>PID:</strong> {{ zombie.pid }}<br>
+                            <strong>Process Name:</strong> {{ zombie.nombre }}<br>
+                            <strong>State:</strong> {{ zombie.estado }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="event">No zombie processes found.</div>
+                {% endif %}
+            </div>
+        {% endif %}
+    
     </div>
 
     <!-- Line Charts -->

@@ -1,102 +1,137 @@
-from kubernetes import client, config
-from datetime import datetime, timezone, timedelta
-import time
+import shutil
+import subprocess
 from rich.console import Console
 
 console = Console()
 
-config.load_kube_config()
-
 
 def detect_zombie_processes_in_pods(interval=300):
-    console.log("[cyan]Detecting zombie processes in non-running pods...[/cyan]")
+    # Verificar si kubectl está instalado
+    if not shutil.which("kubectl"):
+        raise EnvironmentError("kubectl no está instalado o no se encuentra en el PATH.")
 
-    # Cargar la configuración del kubeconfig
-    config.load_kube_config()
-    core_v1 = client.CoreV1Api()
+    # Definir el script bash en una variable raw
+    bash_script = """
+#!/bin/bash
 
-    # Lista para almacenar la información de los procesos zombies encontrados
+# Colores para los logs
+RED='\\033[0;31m'
+GREEN='\\033[0;32m'
+YELLOW='\\033[0;33m'
+BLUE='\\033[0;34m'
+NC='\\033[0m' # No Color
+
+# Parámetro de intervalo en segundos con valor por defecto de {interval} segundos
+interval={interval}
+
+# Obtener la fecha límite para filtrar pods
+current_time=$(date +%s)
+time_threshold=$((current_time - interval))
+
+# Obtener todos los pods en estado Pending o que no están Running por más del intervalo especificado
+echo -e "${{BLUE}}Obteniendo pods en estado Pending o no Running por más de $interval segundos...${{NC}}"
+pods=$(kubectl get pods --all-namespaces --field-selector=status.phase!=Running -o jsonpath='{{range .items[*]}}{{.metadata.namespace}} {{.metadata.name}} {{.status.startTime}}{{"\\n"}}{{end}}')
+
+selected_pods=""
+while IFS=$'\\n' read -r line; do
+  namespace=$(echo "$line" | awk '{{print $1}}')
+  pod_name=$(echo "$line" | awk '{{print $2}}')
+  start_time=$(echo "$line" | awk '{{print $3}}')
+
+  if [[ -n "$start_time" ]]; then
+    # Convertir la fecha usando el formato correcto para macOS
+    start_seconds=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$start_time" +%s 2>/dev/null)
+    if [[ -z "$start_seconds" ]]; then
+      echo -e "${{RED}}Error al convertir la fecha: $start_time${{NC}}"
+      continue
+    fi
+
+    current_seconds=$(date +%s)
+    diff_seconds=$((current_seconds - start_seconds))
+    if (( diff_seconds > interval )); then
+      selected_pods+="$namespace $pod_name\\n"
+    fi
+  else
+    selected_pods+="$namespace $pod_name\\n"
+  fi
+done <<< "$pods"
+
+if [[ -z "$selected_pods" ]]; then
+  echo -e "${{GREEN}}No se encontraron pods en estado Pending o no Running por más de $interval segundos.${{NC}}"
+  exit 0
+fi
+
+while IFS=$'\\n' read -r pod; do
+  namespace=$(echo "$pod" | awk '{{print $1}}')
+  pod_name=$(echo "$pod" | awk '{{print $2}}')
+  
+  if [[ -n "$namespace" && -n "$pod_name" ]]; then
+    echo -e "${{YELLOW}}Verificando todos los procesos en los contenedores del pod: $pod_name en el namespace: $namespace...${{NC}}"
+    
+    # Obtener todos los contenedores del pod
+    containers=$(kubectl get pod "$pod_name" -n "$namespace" -o jsonpath='{{.spec.containers[*].name}}')
+
+    for container in $containers; do
+      echo -e "${{BLUE}}Verificando contenedor: $container...${{NC}}"
+
+      # Obtener la información relevante de /proc de todos los procesos y llevarla fuera para su análisis
+      proc_info=$(kubectl exec -n "$namespace" -c "$container" "$pod_name" -- sh -c '
+        for pid in /proc/[0-9]*; do
+          if [ -f "$pid/status" ]; then
+            echo "$pid"
+            cat $pid/status | grep "^State:" || true
+            cat $pid/status | grep "^Name:" || true
+          fi
+        done' 2>/dev/null)
+      # Procesar la información fuera del contenedor
+      echo "$proc_info" | while IFS= read -r line; do
+        if [[ $line == /proc/* ]]; then
+          current_pid=$line
+        elif [[ $line == State:* ]]; then
+          process_state=$(echo "$line" | awk '{{print $2}}')
+        elif [[ $line == Name:* ]]; then
+          process_name=$(echo "$line" | awk '{{print $2}}')
+          
+          # Si tenemos un proceso zombie, imprimimos la información
+          #if [[ "$process_state" == "Z" ]]; then
+            echo -e "${{RED}}Proceso zombie encontrado en el contenedor: $container del pod: $pod_name en el namespace: $namespace. PID: $current_pid, Nombre: $process_name, Estado: $process_state${{NC}}"
+          #fi
+        fi
+      done
+    done
+  fi
+done <<< "$(echo -e "$selected_pods")"
+"""
+
+    # Formatear el script con el valor del intervalo
+    formatted_bash_script = bash_script.format(interval=interval)
+
+    # Ejecutar el script Bash usando subprocess
+    console.log("[cyan]Ejecutando script Bash para detectar procesos zombie...[/cyan]")
+    result = subprocess.run(['bash', '-c', formatted_bash_script],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    # Obtener la salida
+    output = result.stdout
+    errors = result.stderr
+
+    # Manejo de errores
+    if errors:
+        console.log(f"[red]Errores durante la ejecución del script:[/red] {errors}")
+
+    # Procesar la salida
     zombie_processes = []
+    if output:
+        for line in output.splitlines():
+            if "Proceso zombie encontrado" in line:
+                # Parsear la línea para extraer la información relevante
+                parts = line.split(", ")
+                process_info = {}
+                for part in parts:
+                    key, value = part.split(": ")[1].split("=", 1)
+                    process_info[key.lower()] = value
+                zombie_processes.append(process_info)
 
-    # Obtener el tiempo actual y el límite de tiempo
-    current_time = int(time.time())
-    time_threshold = current_time - interval
-
-    # Obtener todos los pods que no están en estado Running
-    pods = core_v1.list_pod_for_all_namespaces(field_selector="status.phase!=Running")
-
-    for pod in pods.items:
-        start_time = pod.status.start_time
-        if not start_time:
-            continue
-
-        # Convertir el tiempo de inicio del pod a segundos desde el epoch
-        start_timestamp = int(start_time.replace(tzinfo=timezone.utc).timestamp())
-        diff_seconds = current_time - start_timestamp
-
-        if diff_seconds > interval:
-            namespace = pod.metadata.namespace
-            pod_name = pod.metadata.name
-            console.log(
-                f"[yellow]Checking pod: {pod_name} in namespace: {namespace}...[/yellow]"
-            )
-
-            # Obtener los contenedores del pod
-            for container in pod.spec.containers:
-                container_name = container.name
-                console.log(f"[blue]Checking container: {container_name}...[/blue]")
-
-                try:
-                    # Ejecutar el comando para listar procesos y encontrar zombies
-                    exec_command = [
-                        "sh",
-                        "-c",
-                        "for pid in /proc/[0-9]*; do "
-                        'if [ -f "$pid/status" ]; then '
-                        'echo "$pid"; '
-                        'cat $pid/status | grep "^State:" || true; '
-                        'cat $pid/status | grep "^Name:" || true; '
-                        "fi; "
-                        "done",
-                    ]
-                    resp = core_v1.connect_get_namespaced_pod_exec(
-                        name=pod_name,
-                        namespace=namespace,
-                        container=container_name,
-                        command=exec_command,
-                        stderr=True,
-                        stdin=False,
-                        stdout=True,
-                        tty=False,
-                    )
-
-                    # Procesar la salida para detectar procesos zombies
-                    current_pid = None
-                    for line in resp.splitlines():
-                        if line.startswith("/proc/"):
-                            current_pid = line
-                        elif line.startswith("State:"):
-                            process_state = line.split()[1]
-                        elif line.startswith("Name:"):
-                            process_name = line.split()[1]
-                            # Si el proceso es zombie, agregar la información a la lista
-                            if process_state == "Z":
-                                console.log(
-                                    f"[red]Zombie process found in container: {container_name} of pod: {pod_name} "
-                                    f"in namespace: {namespace}. PID: {current_pid}, Name: {process_name}, State: {process_state}[/red]"
-                                )
-                                zombie_processes.append(
-                                    {
-                                        "namespace": namespace,
-                                        "pod_name": pod_name,
-                                        "container_name": container_name,
-                                        "process_name": process_name,
-                                    }
-                                )
-
-                except client.exceptions.ApiException as e:
-                    console.log(
-                        f"[red]Error executing command in pod: {pod_name}, container: {container_name}. Error: {e}[/red]"
-                    )
+    console.log(f"[green]Se encontraron {len(zombie_processes)} procesos zombies.[/green]")
 
     return zombie_processes

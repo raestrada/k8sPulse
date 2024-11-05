@@ -44,8 +44,14 @@ console = Console()
     is_flag=True,
     help="Commit and push the generated report to Git repository.",
 )
+@click.option(
+    "--zombies",
+    is_flag=True,
+    default=False,
+    help="Detect Zombies.",
+)
 @click.option("--gpt-model", default="gpt-4o", help="GPT Model")
-def cli(env_name, interval, use_ai, git_commit, gpt_model):
+def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
     template_name = "report_template.html"
     docs_dir = os.path.join(os.getcwd(), "docs")
     os.makedirs(docs_dir, exist_ok=True)
@@ -150,6 +156,8 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model):
             "use_ai": use_ai,
             "history_data": prepare_history_data_for_template(history_file),
             "openai_recommendation": recommendation,
+            "zombies": zombies,
+            "zombies_processes": detect_zombie_processes_in_pods() if zombies else []
         }
 
         # Generate HTML report
