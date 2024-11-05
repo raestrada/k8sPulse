@@ -295,6 +295,7 @@
             <th>CrashLoopBackOff</th>
             <th>Recently Restarted</th>
             <th>Nodes with Issues</th>
+            <th>Zombies</th>
         </tr>
         {% for row in history_data %}
             <tr>
@@ -306,6 +307,7 @@
                 <td>{{ row.deployments_with_crashloopbackoff }} ({{ (row.deployments_with_crashloopbackoff / row.total_deployments * 100) | round(2) }}%)</td>
                 <td>{{ row.deployments_with_recent_start }} ({{ (row.deployments_with_recent_start / row.total_deployments * 100) | round(2) }}%)</td>
                 <td>{{ row.nodes_with_issues }}</td>
+                <td>{{ row.zombies_processes }}</td>
             </tr>
         {% endfor %}
     </table>

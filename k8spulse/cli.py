@@ -70,6 +70,8 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
         unusual_events = get_unusual_events()
         semaphore_statuses = get_semaphore_status()
 
+        zombie_processes = detect_zombie_processes_in_pods() if zombies else []
+
         # Save report history
         data = {
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -80,6 +82,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
             "deployments_with_exact_replicas": deployments_with_exact_replicas,
             "deployments_with_crashloopbackoff": deployments_with_crashloopbackoff,
             "nodes_with_issues": nodes_with_issues,
+            "zombie_processes": zombie_processes,
         }
         save_report_history(history_file, data)
 
@@ -157,7 +160,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
             "history_data": prepare_history_data_for_template(history_file),
             "openai_recommendation": recommendation,
             "zombies": zombies,
-            "zombies_processes": detect_zombie_processes_in_pods() if zombies else []
+            "zombies_processes": zombie_processes,
         }
 
         # Generate HTML report

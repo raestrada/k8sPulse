@@ -25,6 +25,7 @@ def load_report_history(history_file):
                 "deployments_with_crashloopbackoff",
                 "deployments_with_recent_start",
                 "nodes_with_issues",
+                "zombie_processes",
             ]
         )
     return pd.read_csv(history_file)
@@ -63,13 +64,14 @@ def save_report_history(history_file, data):
         "deployments_with_crashloopbackoff",
         "deployments_with_recent_start",
         "nodes_with_issues",
+        "zombie_processes",
     ]
     if not os.path.exists(history_file):
         with open(history_file, "w") as f:
             f.write(",".join(columns) + "\n")
     with open(history_file, "a") as f:
         f.write(
-            f"{data['timestamp']},{data['total_deployments']},{data['deployments_with_replicas']},{data['deployments_with_zero_replicas']},{data['deployments_with_exact_replicas']},{data['deployments_with_crashloopbackoff']},{data['deployments_with_recent_start']},{len(data['nodes_with_issues'])}\n"
+            f"{data['timestamp']},{data['total_deployments']},{data['deployments_with_replicas']},{data['deployments_with_zero_replicas']},{data['deployments_with_exact_replicas']},{data['deployments_with_crashloopbackoff']},{data['deployments_with_recent_start']},{len(data['nodes_with_issues'])},{len(data['zombie_processes'])}\n"
         )
 
 
