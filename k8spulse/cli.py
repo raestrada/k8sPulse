@@ -629,10 +629,10 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model):
 
         # Generate charts using dial gauges
         gauge_chart_deployments_with_replicas = generate_dial_gauge_chart(
-            deployments_with_replicas, "With Replicas", max_value=total_deployments, direction="direct", red_threshold=60, yellow_threshold=75
+            deployments_with_replicas, "With Replicas", max_value=total_deployments, direction="direct", red_threshold=60, yellow_threshold=80
         )
         gauge_chart_deployments_zero_replicas = generate_dial_gauge_chart(
-            deployments_with_zero_replicas, "Zero Replicas", max_value=total_deployments, direction="inverse", red_threshold=60, yellow_threshold=80
+            deployments_with_zero_replicas, "Zero Replicas", max_value=total_deployments, direction="inverse", red_threshold=70, yellow_threshold=50
         )
         gauge_chart_exact_replicas = generate_dial_gauge_chart(
             deployments_with_exact_replicas,
@@ -640,7 +640,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model):
             max_value=total_deployments, direction="direct", red_threshold=50, yellow_threshold=65
         )  # Example calculation
         gauge_chart_crashloopbackoff = generate_dial_gauge_chart(
-            deployments_with_crashloopbackoff, "CrashLoopBackOff", max_value=total_deployments, direction="inverse", red_threshold=40, yellow_threshold=30
+            deployments_with_crashloopbackoff, "CrashLoopBackOff", max_value=total_deployments, direction="inverse", red_threshold=50, yellow_threshold=30
         )
         gauge_chart_recently_restarted = generate_dial_gauge_chart(
             deployments_with_recent_start, "Restarted", direction="inverse", red_threshold=60, yellow_threshold=30
