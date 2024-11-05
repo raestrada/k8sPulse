@@ -15,10 +15,10 @@ To use k8sPulse, you'll need `pipx` installed to easily manage the tool as an is
 To install **k8sPulse** using `pipx`, run the following command:
 
 ```sh
-pipx install git+https://github.com/raestrada/k8sPulse.git@v0.1.0
+pipx install git+https://github.com/raestrada/k8sPulse.git@v0.2.0
 ```
 
-This command installs the latest tagged version (`v0.1.0`) of k8sPulse.
+This command installs the latest tagged version (`v0.2.0`) of k8sPulse.
 
 ### Installing pipx
 

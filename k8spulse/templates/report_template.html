@@ -198,7 +198,7 @@
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_crashloopbackoff }}" alt="Pods in CrashLoopBackOff">
-            <div>({{ (pods_with_crashloopbackoff / total_deployments * 100) | round(2) }}%) ({{ pods_with_crashloopbackoff }})</div>
+            <div>({{ (deployments_with_crashloopbackoff / total_deployments * 100) | round(2) }}%) ({{ deployments_with_crashloopbackoff }})</div>
         </div>
         <div class="gauge-container">
             <img src="data:image/png;base64,{{ gauge_chart_recently_restarted }}" alt="Recently Restarted Pods">
@@ -282,7 +282,7 @@
                 <td>{{ row.deployments_with_replicas }} ({{ (row.deployments_with_replicas / row.total_deployments * 100) | round(2) }}%)</td>
                 <td>{{ row.deployments_with_zero_replicas }} ({{ (row.deployments_with_zero_replicas / row.total_deployments * 100) | round(2) }}%)</td>
                 <td>{{ row.deployments_with_exact_replicas }} ({{ (row.deployments_with_exact_replicas / row.total_deployments * 100) | round(2) }}%)</td>
-                <td>{{ row.pods_with_crashloopbackoff }} ({{ (row.pods_with_crashloopbackoff / row.total_deployments * 100) | round(2) }}%)</td>
+                <td>{{ row.deployments_with_crashloopbackoff }} ({{ (row.deployments_with_crashloopbackoff / row.total_deployments * 100) | round(2) }}%)</td>
                 <td>{{ row.deployments_with_recent_start }} ({{ (row.deployments_with_recent_start / row.total_deployments * 100) | round(2) }}%)</td>
                 <td>{{ row.nodes_with_issues }}</td>
             </tr>

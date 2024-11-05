@@ -116,20 +116,40 @@ def get_deployments_with_recent_restarts():
     return len(deployment_names)
 
 
-def get_pods_with_crashloopbackoff():
-    console.log("[cyan]Counting pods in CrashLoopBackOff state...[/cyan]")
+def get_deployments_with_crashloopbackoff():
+    console.log("[cyan]Counting deployments with pods in CrashLoopBackOff state...[/cyan]")
     core_v1 = client.CoreV1Api()
+    apps_v1 = client.AppsV1Api()
+
+    # Get all pods
     pods = core_v1.list_pod_for_all_namespaces()
-    count = 0
+
+    # Track namespaces and labels of pods in CrashLoopBackOff
+    deployments_in_crashloop = set()
+
     for pod in pods.items:
         for container_status in pod.status.container_statuses or []:
             if (
                 container_status.state.waiting
                 and container_status.state.waiting.reason == "CrashLoopBackOff"
             ):
-                count += 1
-    return count
+                # Identify the deployment from pod metadata labels
+                labels = pod.metadata.labels
+                if labels:
+                    # Assuming the label `app` or `app.kubernetes.io/name` identifies the deployment
+                    app_label = labels.get('app') or labels.get('app.kubernetes.io/name')
+                    if app_label:
+                        deployments_in_crashloop.add((pod.metadata.namespace, app_label))
 
+    # Check for matching deployments
+    count = 0
+    for namespace, app_label in deployments_in_crashloop:
+        deployments = apps_v1.list_namespaced_deployment(namespace=namespace)
+        for deployment in deployments.items:
+            if deployment.metadata.labels.get('app') == app_label or deployment.metadata.labels.get('app.kubernetes.io/name') == app_label:
+                count += 1
+
+    return count
 
 def get_nodes_with_issues():
     console.log("[cyan]Identifying nodes with issues...[/cyan]")
@@ -194,13 +214,12 @@ def get_semaphore_status():
 
     # Metrics Server
     try:
-        metrics_server = apps_v1.read_namespaced_deployment(
-            name="metrics-server-v1.30.3", namespace="kube-system"
-        )
-        if (
-            metrics_server.status.ready_replicas
-            and metrics_server.status.ready_replicas > 0
-        ):
+        deployments = apps_v1.list_namespaced_deployment(namespace="kube-system")
+        metrics_server = next((
+            deployment for deployment in deployments.items
+            if deployment.metadata.name.startswith("metrics-server")
+        ), None)
+        if metrics_server and metrics_server.status.ready_replicas and metrics_server.status.ready_replicas > 0:
             statuses["metrics_server_status"] = True
     except client.exceptions.ApiException:
         console.log("[red]Error fetching metrics-server status[/red]")
@@ -258,14 +277,32 @@ def get_semaphore_status():
 
 
 # Function to generate gauge chart images and encode them in base64
-def generate_dial_gauge_chart(value, title, min_value=0, max_value=100):
-    # Calcular el porcentaje real basado en el valor y el valor máximo
+def generate_dial_gauge_chart(value, title, min_value=0, max_value=100, direction="direct", yellow_threshold=50, red_threshold=80):
+    # Calculate the actual percentage based on value and limits
     percentage = (value - min_value) / (max_value - min_value) * 100
-    percentage = min(max(percentage, 0), 100)  # Limitar el porcentaje entre 0 y 100
+    percentage = min(max(percentage, 0), 100)  # Limit percentage between 0 and 100
 
     console.log(
         f"[cyan]Generating dial gauge chart for {title} with {percentage}%...[/cyan]"
     )
+
+    # Set gauge colors based on thresholds and direction
+    if direction == "inverse":
+        # Inverse: less is better
+        if percentage <= yellow_threshold:
+            color = "#4CAF50"
+        elif percentage <= red_threshold:
+            color = "#FFC107"
+        else:
+            color = "#FF4444"
+    else:
+        # Direct: more is better
+        if percentage >= red_threshold:
+            color = "#4CAF50"
+        elif percentage >= yellow_threshold:
+            color = "#FFC107"
+        else:
+            color = "#FF4444"
 
     fig, ax = plt.subplots(
         figsize=(5, 2.5), subplot_kw={"aspect": "equal"}
@@ -278,7 +315,7 @@ def generate_dial_gauge_chart(value, title, min_value=0, max_value=100):
         r=1,
         theta1=0,
         theta2=theta,
-        facecolor="#4CAF50" if percentage >= 80 else "#FF4444",
+        facecolor=color,
         edgecolor="black",
     )
 
@@ -300,7 +337,7 @@ def generate_dial_gauge_chart(value, title, min_value=0, max_value=100):
         va="center",
         fontsize=14,
         fontweight="bold",
-    )  # Mostrar el porcentaje
+    )  # Display percentage
 
     plt.tight_layout()
 
@@ -310,7 +347,6 @@ def generate_dial_gauge_chart(value, title, min_value=0, max_value=100):
     encoded_image = base64.b64encode(buf.read()).decode("utf-8")
     plt.close(fig)
     return encoded_image
-
 
 # Function to generate line chart based on history data
 def generate_line_chart(history_df):
@@ -333,8 +369,8 @@ def generate_line_chart(history_df):
     history_df["deployments_with_exact_replicas_pct"] = (
         history_df["deployments_with_exact_replicas"] / history_df["total_deployments"]
     ) * 100
-    history_df["pods_with_crashloopbackoff_pct"] = (
-        history_df["pods_with_crashloopbackoff"] / history_df["total_deployments"]
+    history_df["deployments_with_crashloopbackoff_pct"] = (
+        history_df["deployments_with_crashloopbackoff"] / history_df["total_deployments"]
     ) * 100
     history_df["deployments_with_recent_start_pct"] = (
         history_df["deployments_with_recent_start"] / history_df["total_deployments"]
@@ -347,7 +383,7 @@ def generate_line_chart(history_df):
             "deployments_with_replicas_pct",
             "deployments_with_zero_replicas_pct",
             "deployments_with_exact_replicas_pct",
-            "pods_with_crashloopbackoff_pct",
+            "deployments_with_crashloopbackoff_pct",
             "deployments_with_recent_start_pct",
         ],
         ax=ax,
@@ -375,7 +411,7 @@ def save_report_history(history_file, data):
         "deployments_with_replicas",
         "deployments_with_zero_replicas",
         "deployments_with_exact_replicas",
-        "pods_with_crashloopbackoff",
+        "deployments_with_crashloopbackoff",
         "deployments_with_recent_start",
         "nodes_with_issues",
     ]
@@ -384,7 +420,7 @@ def save_report_history(history_file, data):
             f.write(",".join(columns) + "\n")
     with open(history_file, "a") as f:
         f.write(
-            f"{data['timestamp']},{data['total_deployments']},{data['deployments_with_replicas']},{data['deployments_with_zero_replicas']},{data['deployments_with_exact_replicas']},{data['pods_with_crashloopbackoff']},{data['deployments_with_recent_start']},{len(data['nodes_with_issues'])}\n"
+            f"{data['timestamp']},{data['total_deployments']},{data['deployments_with_replicas']},{data['deployments_with_zero_replicas']},{data['deployments_with_exact_replicas']},{data['deployments_with_crashloopbackoff']},{data['deployments_with_recent_start']},{len(data['nodes_with_issues'])}\n"
         )
 
 
@@ -399,7 +435,7 @@ def load_report_history(history_file):
                 "deployments_with_replicas",
                 "deployments_with_zero_replicas",
                 "deployments_with_exact_replicas",
-                "pods_with_crashloopbackoff",
+                "deployments_with_crashloopbackoff",
                 "deployments_with_recent_start",
                 "nodes_with_issues",
             ]
@@ -570,7 +606,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model):
         deployments_with_zero_replicas = get_deployments_with_zero_replicas()
         deployments_with_exact_replicas = get_deployments_with_exact_replicas()
         deployments_with_recent_start = get_deployments_with_recent_restarts()
-        pods_with_crashloopbackoff = get_pods_with_crashloopbackoff()
+        deployments_with_crashloopbackoff = get_deployments_with_crashloopbackoff()
         nodes_with_issues = get_nodes_with_issues()
         unusual_events = get_unusual_events()
         semaphore_statuses = get_semaphore_status()
@@ -583,7 +619,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model):
             "deployments_with_zero_replicas": deployments_with_zero_replicas,
             "deployments_with_recent_start": deployments_with_recent_start,
             "deployments_with_exact_replicas": deployments_with_exact_replicas,
-            "pods_with_crashloopbackoff": pods_with_crashloopbackoff,
+            "deployments_with_crashloopbackoff": deployments_with_crashloopbackoff,
             "nodes_with_issues": nodes_with_issues,
         }
         save_report_history(history_file, data)
@@ -593,21 +629,21 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model):
 
         # Generate charts using dial gauges
         gauge_chart_deployments_with_replicas = generate_dial_gauge_chart(
-            deployments_with_replicas, "With Replicas", max_value=total_deployments
+            deployments_with_replicas, "With Replicas", max_value=total_deployments, direction="direct", red_threshold=60, yellow_threshold=75
         )
         gauge_chart_deployments_zero_replicas = generate_dial_gauge_chart(
-            deployments_with_zero_replicas, "Zero Replicas", max_value=total_deployments
+            deployments_with_zero_replicas, "Zero Replicas", max_value=total_deployments, direction="inverse", red_threshold=60, yellow_threshold=80
         )
         gauge_chart_exact_replicas = generate_dial_gauge_chart(
             deployments_with_exact_replicas,
             "Exact Replicas",
-            max_value=total_deployments,
+            max_value=total_deployments, direction="direct", red_threshold=50, yellow_threshold=65
         )  # Example calculation
         gauge_chart_crashloopbackoff = generate_dial_gauge_chart(
-            pods_with_crashloopbackoff, "CrashLoopBackOff"
+            deployments_with_crashloopbackoff, "CrashLoopBackOff", max_value=total_deployments, direction="inverse", red_threshold=40, yellow_threshold=30
         )
         gauge_chart_recently_restarted = generate_dial_gauge_chart(
-            deployments_with_recent_start, "Restarted"
+            deployments_with_recent_start, "Restarted", direction="inverse", red_threshold=60, yellow_threshold=30
         )  # Placeholder
         line_chart_image = generate_line_chart(history_df)
 
@@ -626,7 +662,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model):
             "deployments_with_zero_replicas": deployments_with_zero_replicas,
             "deployments_with_recent_start": deployments_with_recent_start,
             "deployments_with_exact_replicas": deployments_with_exact_replicas,
-            "pods_with_crashloopbackoff": pods_with_crashloopbackoff,
+            "deployments_with_crashloopbackoff": deployments_with_crashloopbackoff,
             "nodes_with_issues": nodes_with_issues,
             "unusual_events": unusual_events,
             **semaphore_statuses,  # Merge semaphore statuses into the context
