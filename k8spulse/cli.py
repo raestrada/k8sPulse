@@ -286,23 +286,27 @@ def generate_dial_gauge_chart(value, title, min_value=0, max_value=100, directio
         f"[cyan]Generating dial gauge chart for {title} with {percentage}%...[/cyan]"
     )
 
+    green="#4CAF50"
+    yellow="#FFC107"
+    red="#FF4444"
+
     # Set gauge colors based on thresholds and direction
     if direction == "inverse":
         # Inverse: less is better
         if percentage <= yellow_threshold:
-            color = "#4CAF50"
+            color = green
         elif percentage <= red_threshold:
-            color = "#FFC107"
+            color = yellow
         else:
-            color = "#FF4444"
+            color = red
     else:
         # Direct: more is better
-        if percentage >= red_threshold:
-            color = "#4CAF50"
-        elif percentage >= yellow_threshold:
-            color = "#FFC107"
+        if percentage >= yellow_threshold:
+            color = green
+        elif percentage >= red_threshold:
+            color = yellow
         else:
-            color = "#FF4444"
+            color = red
 
     fig, ax = plt.subplots(
         figsize=(5, 2.5), subplot_kw={"aspect": "equal"}
