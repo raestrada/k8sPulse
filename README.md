@@ -1,4 +1,4 @@
-# ![k8sPulse Logo](https://res.cloudinary.com/dyknhuvxt/image/upload/v1730740391/k8spulse_axrf38.png) k8sPulse: Quick Emergency Kubernetes Report
+# [![k8sPulse Logo](https://res.cloudinary.com/dyknhuvxt/image/upload/v1730740391/k8spulse_axrf38.png)](https://raestrada.github.io/k8sPulse/) k8sPulse: Quick Emergency Kubernetes Report
 
 **An Experimental Tool, 100% Made with ChatGPT**
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-k8sPulse is an open-source monitoring tool for emergency scenarios, providing a quick Kubernetes cluster health overview when only `kubectl` is available. Leveraging the Python Kubernetes native client and OpenAI, it generates insightful and actionable recommendations to help resolve issues efficiently.
+[k8sPulse](https://raestrada.github.io/k8sPulse/) is an open-source monitoring tool for emergency scenarios, providing a quick Kubernetes cluster health overview when only `kubectl` is available. Leveraging the Python Kubernetes native client and OpenAI, it generates insightful and actionable recommendations to help resolve issues efficiently.
 
 ![k8sPulse Screenshot](https://res.cloudinary.com/dyknhuvxt/image/upload/v1730741959/Captura_de_pantalla_2024-11-04_a_la_s_14.39.08_flhkbc.png)
 
@@ -16,9 +16,9 @@ k8sPulse is an open-source monitoring tool for emergency scenarios, providing a 
 
 ## Features
 
-- **Fallback Kubernetes Monitoring:** Designed for emergencies where only `kubectl` access is possible.
-- **OpenAI-Powered Recommendations:** Generates actionable cluster health suggestions using OpenAI's GPT models.
-- **Native Kubernetes Python Client:** Uses Kubernetes Python client for direct and reliable cluster interaction.
+- **[Fallback Kubernetes Monitoring](https://raestrada.github.io/k8sPulse/):** Designed for emergencies where only `kubectl` access is possible.
+- **[OpenAI-Powered Recommendations](https://raestrada.github.io/k8sPulse/):** Generates actionable cluster health suggestions using OpenAI's GPT models.
+- **[Native Kubernetes Python Client](https://raestrada.github.io/k8sPulse/):** Uses Kubernetes Python client for direct and reliable cluster interaction.
 
 ## Installation Guide
 
