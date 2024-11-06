@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "k8spulse"
-version = "v0.3.0"
+version = "v0.4.0"
 description = "Kubernetes emergency monitoring tool for generating health reports and insights."
 authors = ["Rodrigo Estrada <rodrigo.estrada@gmail.com>"]
 
@@ -13,6 +13,7 @@ openai = ">=0.27.0"
 click = ">=8.0"
 kubernetes-client = "^0.1.8"
 rich = "^13.9.4"
+pony = "^0.7.19"
 
 [tool.poetry.scripts]
 k8spulse = "k8spulse.cli:cli"

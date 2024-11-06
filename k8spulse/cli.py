@@ -84,10 +84,10 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
             "nodes_with_issues": nodes_with_issues,
             "zombie_processes": zombie_processes,
         }
-        save_report_history(history_file, data)
+        save_report_history(data)
 
         # Load history data for generating charts
-        history_df = load_report_history(history_file)
+        history_df = load_report_history(as_dataframe=True)
 
         # Generate charts using dial gauges
         gauge_chart_deployments_with_replicas = generate_dial_gauge_chart(
@@ -157,7 +157,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
             "gauge_chart_recently_restarted": gauge_chart_recently_restarted,
             "line_chart_image": line_chart_image,
             "use_ai": use_ai,
-            "history_data": prepare_history_data_for_template(history_file),
+            "history_data": prepare_history_data_for_template(),
             "openai_recommendation": recommendation,
             "zombies": zombies,
             "zombies_processes": zombie_processes,

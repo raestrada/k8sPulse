@@ -300,3 +300,4 @@ node_modules
 *.log
 *.csv
 *statistics.html
+*.sqlite

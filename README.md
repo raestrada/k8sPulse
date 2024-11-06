@@ -1,6 +1,6 @@
 # ![k8sPulse Logo](https://res.cloudinary.com/dyknhuvxt/image/upload/c_scale,w_100/v1730740391/k8spulse_axrf38.png)
 
-# k8sPulse v0.3.0 Release 🚀✨
+# k8sPulse v0.4.0 Release 🚀✨
 
 **Release Date: November 5, 2024**
 
@@ -14,7 +14,7 @@
 - This feature uses a **Bash script** along with `kubectl` for efficient zombie detection, outperforming the Python Kubernetes API client.
 - Detects and reports zombie processes in containers, helping identify problematic workloads and improve cluster stability.
 
-## What's New in v0.3.0 ✨
+## What's New in v0.4.0 ✨
 
 ### 1. Experimental Zombie Process Detection 🧟‍♂️🔍
 
@@ -39,10 +39,10 @@
 
 ## Installation 🛠️
 
-To install **k8sPulse v0.3.0** using `pipx`, run the following command:
+To install **k8sPulse v0.4.0** using `pipx`, run the following command:
 
 ```sh
-pipx install git+https://github.com/raestrada/k8sPulse.git@v0.3.0
+pipx install git+https://github.com/raestrada/k8sPulse.git@v0.4.0
 ```
 
 ## Example Usage 💡

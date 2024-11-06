@@ -283,32 +283,47 @@
         </div>
     </div>
 
-    <!-- Last 24-Hour History Table -->
     <h3>Last 24-Hour History</h3>
-    <table>
-        <tr>
-            <th>Time</th>
-            <th>Total Deployments</th>
-            <th>With Replica</th>
-            <th>No Replica</th>
-            <th>Exactly Desired</th>
-            <th>CrashLoopBackOff</th>
-            <th>Recently Restarted</th>
-            <th>Nodes with Issues</th>
-            <th>Zombies</th>
+<table>
+    <tr>
+        <th>Time</th>
+        <th>Total Deployments</th>
+        <th>With Replica</th>
+        <th>No Replica</th>
+        <th>Exactly Desired</th>
+        <th>CrashLoopBackOff</th>
+        <th>Recently Restarted</th>
+        <th>Nodes with Issues</th>
+        <th>Zombies</th>
         </tr>
         {% for row in history_data %}
-            <tr>
-                <td>{{ row.timestamp }}</td>
-                <td>{{ row.total_deployments }}</td>
-                <td>{{ row.deployments_with_replicas }} ({{ (row.deployments_with_replicas / row.total_deployments * 100) | round(2) }}%)</td>
-                <td>{{ row.deployments_with_zero_replicas }} ({{ (row.deployments_with_zero_replicas / row.total_deployments * 100) | round(2) }}%)</td>
-                <td>{{ row.deployments_with_exact_replicas }} ({{ (row.deployments_with_exact_replicas / row.total_deployments * 100) | round(2) }}%)</td>
-                <td>{{ row.deployments_with_crashloopbackoff }} ({{ (row.deployments_with_crashloopbackoff / row.total_deployments * 100) | round(2) }}%)</td>
-                <td>{{ row.deployments_with_recent_start }} ({{ (row.deployments_with_recent_start / row.total_deployments * 100) | round(2) }}%)</td>
-                <td>{{ row.nodes_with_issues }}</td>
-                <td>{{ row.zombies_processes }}</td>
-            </tr>
+            {% if row.total_deployments is number and row.total_deployments > 0 %}
+                <tr>
+                    <td>{{ row.timestamp }}</td>
+                    <td>{{ row.total_deployments }}</td>
+                    <td style="color: {% if (row.deployments_with_replicas / row.total_deployments * 100) >= 80 %}#4CAF50{% elif (row.deployments_with_replicas / row.total_deployments * 100) >= 60 %}#FFC107{% else %}#FF4444{% endif %};">
+                        {{ row.deployments_with_replicas }} ({{ (row.deployments_with_replicas / row.total_deployments * 100) | round(2) }}%)
+                    </td>
+                    <td style="color: {% if (row.deployments_with_zero_replicas / row.total_deployments * 100) <= 50 %}#4CAF50{% elif (row.deployments_with_zero_replicas / row.total_deployments * 100) <= 70 %}#FFC107{% else %}#FF4444{% endif %};">
+                        {{ row.deployments_with_zero_replicas }} ({{ (row.deployments_with_zero_replicas / row.total_deployments * 100) | round(2) }}%)
+                    </td>
+                    <td style="color: {% if (row.deployments_with_exact_replicas / row.total_deployments * 100) >= 65 %}#4CAF50{% elif (row.deployments_with_exact_replicas / row.total_deployments * 100) >= 50 %}#FFC107{% else %}#FF4444{% endif %};">
+                        {{ row.deployments_with_exact_replicas }} ({{ (row.deployments_with_exact_replicas / row.total_deployments * 100) | round(2) }}%)
+                    </td>
+                    <td style="color: {% if (row.deployments_with_crashloopbackoff / row.total_deployments * 100) <= 30 %}#4CAF50{% elif (row.deployments_with_crashloopbackoff / row.total_deployments * 100) <= 50 %}#FFC107{% else %}#FF4444{% endif %};">
+                        {{ row.deployments_with_crashloopbackoff }} ({{ (row.deployments_with_crashloopbackoff / row.total_deployments * 100) | round(2) }}%)
+                    </td>
+                    <td style="color: {% if (row.deployments_with_recent_start / row.total_deployments * 100) <= 30 %}#4CAF50{% elif (row.deployments_with_recent_start / row.total_deployments * 100) <= 60 %}#FFC107{% else %}#FF4444{% endif %};">
+                        {{ row.deployments_with_recent_start }} ({{ (row.deployments_with_recent_start / row.total_deployments * 100) | round(2) }}%)
+                    </td>
+                    <td>{{ row.nodes_with_issues | length }}</td>
+                    <td>{{ row.zombie_processes | length }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="9">Data unavailable for this entry.</td>
+                </tr>
+            {% endif %}
         {% endfor %}
     </table>
 </body>
