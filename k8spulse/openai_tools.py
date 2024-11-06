@@ -6,6 +6,7 @@ console = Console()
 
 # Initialize OpenAI client (it will automatically use the API key from environment variables)
 
+
 def get_openai_recommendation(report_file_path, gpt_model):
     client = OpenAI()
 
