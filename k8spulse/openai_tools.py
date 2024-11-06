@@ -1,15 +1,14 @@
 import time
-import openai
+from openai import OpenAI
 from rich.console import Console
 
 console = Console()
 
+# Initialize OpenAI client (it will automatically use the API key from environment variables)
+client = OpenAI()
 
 def get_openai_recommendation(report_file_path, gpt_model):
     console.log("[cyan]Requesting recommendation from OpenAI...[/cyan]")
-
-    # Initialize OpenAI client (it will automatically use the API key from environment variables)
-    client = openai.OpenAI()
 
     # Step 1: Upload the report file to OpenAI
     with open(report_file_path, "rb") as report_file:

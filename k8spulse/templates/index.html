@@ -9,39 +9,58 @@
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #f9fafb;
-            color: #334e68;
+            background: linear-gradient(135deg, #0f766e, #34d399, #3b82f6);
+            background-size: 300% 300%;
+            animation: backgroundAnimation 12s ease infinite;
+            color: #ffffff;
             padding: 20px;
             margin: 0;
         }
+
+        @keyframes backgroundAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         header {
             display: flex;
             align-items: center;
             gap: 15px;
             margin-bottom: 30px;
+            justify-content: center;
         }
         header img {
             width: auto;
-            height: 60px;
+            height: 80px;
         }
         header h1 {
-            color: #0f766e;
+            color: #ffffff;
             font-size: 2.5em;
             font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
         .description {
             max-width: 800px;
             line-height: 1.6;
             font-size: 1.2em;
             margin-bottom: 40px;
+            color: #ffffff;
         }
         .description a {
-            color: #0284c7;
+            color: #f97316;
             text-decoration: none;
             font-weight: bold;
         }
         .description a:hover {
             text-decoration: underline;
+        }
+        .divider {
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, #f97316, #0f766e, #3b82f6);
+            animation: backgroundAnimation 8s ease-in-out infinite;
+            margin: 40px 0;
         }
         .reports {
             display: flex;
@@ -49,19 +68,19 @@
             gap: 15px;
         }
         .report-link {
-            background: #ffffff;
+            background: rgba(255, 255, 255, 0.15);
             padding: 20px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
             border-radius: 12px;
             transition: background-color 0.3s ease, transform 0.3s ease;
         }
         .report-link:hover {
-            background-color: #f0f4f8;
+            background-color: rgba(255, 255, 255, 0.2);
             transform: translateY(-4px);
         }
         .report-link a {
             text-decoration: none;
-            color: #0f766e;
+            color: #ffffff;
             font-weight: bold;
             font-size: 1.2em;
         }
@@ -80,6 +99,8 @@
         <br><br>
         Interested in knowing more about k8spulse? Visit our <a href="https://raestrada.github.io/k8sPulse/" target="_blank">official site</a> to discover how k8spulse can empower your Kubernetes monitoring needs with smart and effective tools.
     </div>
+
+    <div class="divider"></div>
 
     <div class="reports">
         <!-- The list of generated reports will be inserted here -->

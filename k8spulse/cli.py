@@ -27,7 +27,7 @@ from k8spulse.db import (
     render_html_report,
     prepare_history_data_for_template,
 )
-from k8spulse.openai import get_openai_recommendation
+from k8spulse.openai_tools import get_openai_recommendation
 
 console = Console()
 
