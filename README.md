@@ -1,62 +1,163 @@
-# ![k8sPulse Logo](https://res.cloudinary.com/dyknhuvxt/image/upload/c_scale,w_100/v1730740391/k8spulse_axrf38.png)
+# [![k8sPulse Logo](https://res.cloudinary.com/dyknhuvxt/image/upload/v1730740391/k8spulse_axrf38.png)](https://raestrada.github.io/k8sPulse/) k8sPulse: Quick Emergency Kubernetes Report
 
-# k8sPulse v0.4.0 Release 🚀✨
+**An Experimental Tool, 100% Made with ChatGPT**
 
-**Release Date: November 5, 2024**
+> **Note**: k8sPulse is a technical experiment built entirely with ChatGPT. It’s not optimized for speed or efficiency and does not replace real-time monitoring solutions like Grafana, New Relic, or Datadog. Instead, it’s designed as a fallback option for emergency scenarios when advanced cloud-native scaling tools (e.g., CAST AI, Karpenter, GKE’s autoscaler) may fail. This tool provides critical insights into a Kubernetes cluster with only `kubectl` access.
 
-> **Note**: This is a breaking release with several exciting new features, including experimental zombie process detection.
+---
 
-## Breaking Changes ⚠️
+## Overview
 
-### Experimental Zombie Process Detection 🧟‍♂️🔍
+[k8sPulse](https://raestrada.github.io/k8sPulse/) is an open-source monitoring tool for emergency scenarios, providing a quick Kubernetes cluster health overview when only `kubectl` is available. Leveraging the Python Kubernetes native client and OpenAI, it generates insightful and actionable recommendations to help resolve issues efficiently.
 
-- Added the `--zombies` flag to enable **experimental zombie process detection** in non-running pods.
-- This feature uses a **Bash script** along with `kubectl` for efficient zombie detection, outperforming the Python Kubernetes API client.
-- Detects and reports zombie processes in containers, helping identify problematic workloads and improve cluster stability.
+![k8sPulse Screenshot](https://res.cloudinary.com/dyknhuvxt/image/upload/v1730741959/Captura_de_pantalla_2024-11-04_a_la_s_14.39.08_flhkbc.png)
 
-## What's New in v0.4.0 ✨
+---
 
-### 1. Experimental Zombie Process Detection 🧟‍♂️🔍
+## Features
 
-- Added the `--zombies` flag to enable **experimental zombie process detection** in non-running pods.
-- This feature uses a **Bash script** along with `kubectl` for efficient zombie detection, outperforming the Python Kubernetes API client.
-- Detects and reports zombie processes in containers, helping identify problematic workloads and improve cluster stability.
+- **[Fallback Kubernetes Monitoring](https://raestrada.github.io/k8sPulse/):** Designed for emergencies where only `kubectl` access is possible.
+- **[OpenAI-Powered Recommendations](https://raestrada.github.io/k8sPulse/):** Generates actionable cluster health suggestions using OpenAI's GPT models.
+- **[Native Kubernetes Python Client](https://raestrada.github.io/k8sPulse/):** Uses Kubernetes Python client for direct and reliable cluster interaction.
 
-### 2. Enhanced OpenAI Integration 🤖🧠
+## Installation Guide
 
-- Improved the **OpenAI-powered recommendations** feature for more precise insights into Kubernetes cluster health.
-- Now supports specifying the GPT model with the `--gpt-model` flag, giving users more control over the type of AI responses generated.
+### Requirements
 
-### 3. Improved CLI Experience 💻✨
+- `kubeconfig` configured and connected to your Kubernetes cluster.
+- `python3` to run cli.
+- OpenAI API key for AI-powered recommendations (optional).
 
-- Better error handling and more informative console logs with **rich text formatting** to make the command line experience smoother and more intuitive.
-- Updated installation instructions for easier setup across different platforms.
+### Installing k8sPulse with pipx
 
-### 4. HTML Report Enhancements 📊🌐
-
-- The generated HTML report now includes a new section for **Zombie Processes** if the `--zombies` flag is used.
-- Improved layout and styling to make navigating through **unusual events**, **node issues**, and **zombie processes** easier.
-
-## Installation 🛠️
-
-To install **k8sPulse v0.4.0** using `pipx`, run the following command:
+To install **k8sPulse** using `pipx`, run:
 
 ```sh
-pipx install git+https://github.com/raestrada/k8sPulse.git@v0.4.0
+pipx install git+https://github.com/raestrada/k8sPulse.git@v0.3.0
 ```
 
-## Example Usage 💡
+This command installs the latest tagged version (`v0.3.0`) of k8sPulse.
 
-Generate a report for the `production` environment every 10 minutes, use OpenAI for recommendations, commit the report to Git, use the `gpt-4o` model, and enable zombie process detection:
+### Installing pipx
+
+#### On Linux and macOS
+
+To install `pipx` on Linux or macOS, run:
 
 ```sh
-k8spulse --env-name production --interval 600 --use-ai --git-commit --gpt-model got-4o --zombies
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
 ```
 
-## Feedback & Contributions 🤝
+Ensure `python3` and `pip` are installed on your system.
 
-We value your feedback! Please report any issues or suggestions on our [GitHub repository](https://github.com/raestrada/k8sPulse). Contributions are welcome!
+#### On Windows
 
-## License 📜
+To install `pipx` on Windows, use the following command in PowerShell:
 
-**k8sPulse** is open source and available under the MIT License.
+```sh
+python -m pip install --user pipx
+python -m pipx ensurepath
+```
+
+After installing `pipx`, close and reopen your terminal or run `refreshenv` if using the Windows Command Prompt.
+
+## Usage
+
+Once installed, k8sPulse allows you to generate Kubernetes cluster reports and monitor your environment.
+
+### Generating a Report
+
+To generate a report with default settings, use:
+
+```sh
+k8spulse
+```
+
+This command generates a Kubernetes cluster report for the default `staging` environment.
+
+### Available Options
+
+- `--env-name`
+  - **Description:** Specify the environment name for the report.
+  - **Default Value:** `staging`
+  - **Usage:**
+    
+    ```sh
+    k8spulse --env-name production
+    ```
+
+- `--interval`
+  - **Description:** Set the interval (in seconds) between report generations.
+  - **Default Value:** `300` (5 minutes)
+  - **Usage:**
+    
+    ```sh
+    k8spulse --interval 600
+    ```
+
+- `--use-ai`
+  - **Description:** Use OpenAI to generate recommendations based on the report.
+  - **Usage:**
+    
+    ```sh
+    k8spulse --use-ai
+    ```
+
+- `--git-commit`
+  - **Description:** Automatically commit and push the generated report to the Git repository.
+  - **Usage:**
+    
+    ```sh
+    k8spulse --git-commit
+    ```
+
+- `--gpt-model`
+  - **Description:** Specify which GPT model to use for recommendations.
+  - **Default Value:** `got-4o`
+  - **Usage:**
+    
+    ```sh
+    k8spulse --gpt-model got-4o
+    ```
+
+### Enabling AI Recommendations
+
+To receive AI-powered recommendations for Kubernetes cluster health:
+
+1. Ensure you have an [OpenAI API key](https://platform.openai.com/account/api-keys) set as an environment variable:
+   
+   ```sh
+   export OPENAI_API_KEY=your_openai_api_key_here
+   ```
+
+2. Run the command with the `--use-ai` flag:
+   
+   ```sh
+   k8spulse --use-ai
+   ```
+
+3. Recommendations will be generated and included in the HTML report.
+
+## Generating the HTML Report
+
+After generating a report, open the generated `staging_statistics.html` file in your browser. The report provides a visual overview of the Kubernetes cluster, including metrics, events, and insights.
+
+### Index.html Generation for GitHub Pages
+
+An `index.html` file is automatically generated to list all available reports. This allows easy hosting of reports using GitHub Pages for sharing and quick access.
+
+#### Using GitHub Pages
+
+1. Push the generated `index.html` and report files to your GitHub repository.
+2. In your repository settings, go to **Settings > Pages**.
+3. Under **Source**, select the branch and set the folder to `/docs`.
+4. Your reports will now be accessible at your GitHub Pages URL.
+
+## Contributing
+
+Contributions are welcome! Visit our [GitHub repository](https://github.com/raestrada/k8sPulse) for more details on how to get started and our contributing guidelines.
+
+## License
+
+k8sPulse is open source and available under the MIT License.
