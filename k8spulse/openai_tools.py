@@ -5,9 +5,10 @@ from rich.console import Console
 console = Console()
 
 # Initialize OpenAI client (it will automatically use the API key from environment variables)
-client = OpenAI()
 
 def get_openai_recommendation(report_file_path, gpt_model):
+    client = OpenAI()
+
     console.log("[cyan]Requesting recommendation from OpenAI...[/cyan]")
 
     # Step 1: Upload the report file to OpenAI
