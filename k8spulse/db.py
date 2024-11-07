@@ -17,6 +17,8 @@ env = Environment(loader=FileSystemLoader(template_dir))
 # Initialize the database
 with sqlite3.connect(db_file) as conn:
     cursor = conn.cursor()
+
+    # Crear la tabla report_history si no existe
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS report_history (
@@ -31,6 +33,41 @@ with sqlite3.connect(db_file) as conn:
         )
     """
     )
+
+    # Usar ALTER TABLE para agregar las nuevas columnas si no existen
+    try:
+        cursor.execute(
+            "ALTER TABLE report_history ADD COLUMN cpu_used_percentage REAL DEFAULT 0"
+        )
+    except sqlite3.OperationalError:
+        # La columna ya existe
+        pass
+
+    try:
+        cursor.execute(
+            "ALTER TABLE report_history ADD COLUMN cpu_requested_percentage REAL DEFAULT 0"
+        )
+    except sqlite3.OperationalError:
+        # La columna ya existe
+        pass
+
+    try:
+        cursor.execute(
+            "ALTER TABLE report_history ADD COLUMN memory_used_percentage REAL DEFAULT 0"
+        )
+    except sqlite3.OperationalError:
+        # La columna ya existe
+        pass
+
+    try:
+        cursor.execute(
+            "ALTER TABLE report_history ADD COLUMN memory_requested_percentage REAL DEFAULT 0"
+        )
+    except sqlite3.OperationalError:
+        # La columna ya existe
+        pass
+
+    # Crear las tablas node_issues y zombie_processes si no existen
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS node_issues (
@@ -82,6 +119,10 @@ def load_report_history(as_dataframe=False):
                     "deployments_with_exact_replicas": int(row[5]),
                     "deployments_with_crashloopbackoff": int(row[6]),
                     "deployments_with_recent_start": int(row[7]),
+                    "cpu_used_percentage": float(row[8]),
+                    "cpu_requested_percentage": float(row[9]),
+                    "memory_used_percentage": float(row[10]),
+                    "memory_requested_percentage": float(row[11]),
                     "nodes_with_issues": load_node_issues(report_id),
                     "zombie_processes": load_zombie_processes(report_id),
                 }
@@ -154,6 +195,14 @@ def prepare_history_data_for_template():
         entry["deployments_with_recent_start"] = int(
             entry.get("deployments_with_recent_start", 0)
         )
+        entry["cpu_used_percentage"] = float(entry.get("cpu_used_percentage", 0))
+        entry["cpu_requested_percentage"] = float(
+            entry.get("cpu_requested_percentage", 0)
+        )
+        entry["memory_used_percentage"] = float(entry.get("memory_used_percentage", 0))
+        entry["memory_requested_percentage"] = float(
+            entry.get("memory_requested_percentage", 0)
+        )
 
     return history
 
@@ -173,8 +222,9 @@ def save_report_history(data):
             """
             INSERT INTO report_history (
                 timestamp, total_deployments, deployments_with_replicas, deployments_with_zero_replicas,
-                deployments_with_exact_replicas, deployments_with_crashloopbackoff, deployments_with_recent_start
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                deployments_with_exact_replicas, deployments_with_crashloopbackoff, deployments_with_recent_start,
+                cpu_used_percentage, cpu_requested_percentage, memory_used_percentage, memory_requested_percentage
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 data["timestamp"],
@@ -184,6 +234,10 @@ def save_report_history(data):
                 int(data["deployments_with_exact_replicas"]),
                 int(data["deployments_with_crashloopbackoff"]),
                 int(data["deployments_with_recent_start"]),
+                float(data.get("cpu_used_percentage", 0)),
+                float(data.get("cpu_requested_percentage", 0)),
+                float(data.get("memory_used_percentage", 0)),
+                float(data.get("memory_requested_percentage", 0)),
             ),
         )
         report_id = cursor.lastrowid

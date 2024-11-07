@@ -13,33 +13,44 @@ def get_deployments_count():
     console.log("[cyan]Fetching deployments with more than 0 replicas...[/cyan]")
     apps_v1 = client.AppsV1Api()
     deployments = apps_v1.list_deployment_for_all_namespaces()
-    count = sum(1 for deployment in deployments.items if deployment.spec.replicas and deployment.spec.replicas > 0)
-    return count
-
-
-
-# Function to gather deployments with at least one replica defined and at least one ready replica
-def get_deployments_with_replicas():
-    console.log("[cyan]Counting deployments with at least one replica defined and ready...[/cyan]")
-    apps_v1 = client.AppsV1Api()
-    deployments = apps_v1.list_deployment_for_all_namespaces()
     count = sum(
-        1 for deployment in deployments.items 
-        if deployment.spec.replicas and deployment.spec.replicas > 0 
-        and deployment.status.ready_replicas and deployment.status.ready_replicas > 0
+        1
+        for deployment in deployments.items
+        if deployment.spec.replicas and deployment.spec.replicas > 0
     )
     return count
 
 
-
-# Function to gather deployments with at least one replica defined and exactly all replicas ready
-def get_deployments_with_exact_replicas():
-    console.log("[cyan]Counting deployments with exactly desired replicas ready...[/cyan]")
+# Function to gather deployments with at least one replica defined and at least one ready replica
+def get_deployments_with_replicas():
+    console.log(
+        "[cyan]Counting deployments with at least one replica defined and ready...[/cyan]"
+    )
     apps_v1 = client.AppsV1Api()
     deployments = apps_v1.list_deployment_for_all_namespaces()
     count = sum(
-        1 for deployment in deployments.items
-        if deployment.spec.replicas and deployment.spec.replicas > 0
+        1
+        for deployment in deployments.items
+        if deployment.spec.replicas
+        and deployment.spec.replicas > 0
+        and deployment.status.ready_replicas
+        and deployment.status.ready_replicas > 0
+    )
+    return count
+
+
+# Function to gather deployments with at least one replica defined and exactly all replicas ready
+def get_deployments_with_exact_replicas():
+    console.log(
+        "[cyan]Counting deployments with exactly desired replicas ready...[/cyan]"
+    )
+    apps_v1 = client.AppsV1Api()
+    deployments = apps_v1.list_deployment_for_all_namespaces()
+    count = sum(
+        1
+        for deployment in deployments.items
+        if deployment.spec.replicas
+        and deployment.spec.replicas > 0
         and deployment.status.ready_replicas is not None
         and deployment.status.ready_replicas == deployment.spec.replicas
     )
@@ -48,16 +59,22 @@ def get_deployments_with_exact_replicas():
 
 # Function to gather deployments with zero replicas ready but with at least one replica defined
 def get_deployments_with_zero_replicas():
-    console.log("[cyan]Counting deployments with zero ready replicas but having at least one defined...[/cyan]")
+    console.log(
+        "[cyan]Counting deployments with zero ready replicas but having at least one defined...[/cyan]"
+    )
     apps_v1 = client.AppsV1Api()
     deployments = apps_v1.list_deployment_for_all_namespaces()
     count = sum(
-        1 for deployment in deployments.items
-        if deployment.spec.replicas and deployment.spec.replicas > 0
-        and (not deployment.status.ready_replicas or deployment.status.ready_replicas == 0)
+        1
+        for deployment in deployments.items
+        if deployment.spec.replicas
+        and deployment.spec.replicas > 0
+        and (
+            not deployment.status.ready_replicas
+            or deployment.status.ready_replicas == 0
+        )
     )
     return count
-
 
 
 def get_deployments_with_recent_restarts():

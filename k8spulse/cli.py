@@ -19,7 +19,11 @@ from k8spulse.detector.status import (
     get_unusual_events,
 )
 from k8spulse.detector.zombies import detect_zombie_processes_in_pods
-from k8spulse.charts import generate_dial_gauge_chart, generate_line_chart, generate_resource_dial_gauge
+from k8spulse.charts import (
+    generate_dial_gauge_chart,
+    generate_line_chart,
+    generate_resource_dial_gauge,
+)
 from k8spulse.db import (
     generate_index_html,
     save_report_history,
@@ -58,7 +62,6 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
     docs_dir = os.path.join(os.getcwd(), "docs")
     os.makedirs(docs_dir, exist_ok=True)
     report_file = os.path.join(docs_dir, f"{env_name}_statistics.html")
-    history_file = os.path.join(docs_dir, f"{env_name}_statistics_history.csv")
 
     while True:
         console.log("[green]Starting Kubernetes monitoring cycle...[/green]")
@@ -73,8 +76,41 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
         semaphore_statuses = get_semaphore_status()
 
         zombie_processes = detect_zombie_processes_in_pods() if zombies else []
-        resource_metrics =get_cluster_resource_metrics()
-        # Save report history
+        resource_metrics = get_cluster_resource_metrics()
+
+        # Calculate and adjust percentages for CPU and memory
+        cpu_used_percentage = (
+            resource_metrics["total_cpu_used_mcores"]
+            / resource_metrics["total_cpu_capacity_mcores"]
+        ) * 100
+        cpu_requested_percentage = (
+            resource_metrics["total_cpu_requested_mcores"]
+            / resource_metrics["total_cpu_capacity_mcores"]
+        ) * 100
+
+        memory_used_percentage = (
+            resource_metrics["total_memory_used_mib"]
+            / resource_metrics["total_memory_capacity_mib"]
+        ) * 100
+        memory_requested_percentage = (
+            resource_metrics["total_memory_requested_mib"]
+            / resource_metrics["total_memory_capacity_mib"]
+        ) * 100
+
+        # Correct percentages if they are improbably low
+        if cpu_used_percentage < 1:
+            cpu_used_percentage *= 100
+
+        if cpu_requested_percentage < 1:
+            cpu_requested_percentage *= 100
+
+        if memory_used_percentage < 1:
+            memory_used_percentage *= 100
+
+        if memory_requested_percentage < 1:
+            memory_requested_percentage *= 100
+
+        # Save report history with added percentages
         data = {
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "total_deployments": total_deployments,
@@ -85,7 +121,13 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
             "deployments_with_crashloopbackoff": deployments_with_crashloopbackoff,
             "nodes_with_issues": nodes_with_issues,
             "zombie_processes": zombie_processes,
+            # Add calculated percentages for CPU and memory usage
+            "cpu_used_percentage": cpu_used_percentage,
+            "cpu_requested_percentage": cpu_requested_percentage,
+            "memory_used_percentage": memory_used_percentage,
+            "memory_requested_percentage": memory_requested_percentage,
         }
+
         save_report_history(data)
 
         # Load history data for generating charts
@@ -131,10 +173,13 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
             red_threshold=60,
             yellow_threshold=30,
         )
-        
-        gauge_cluster_resource_metrics_cpu = generate_resource_dial_gauge("cpu", resource_metrics)
-        gauge_cluster_resource_metrics_memory = generate_resource_dial_gauge("memory", resource_metrics)
 
+        gauge_cluster_resource_metrics_cpu = generate_resource_dial_gauge(
+            "cpu", resource_metrics
+        )
+        gauge_cluster_resource_metrics_memory = generate_resource_dial_gauge(
+            "memory", resource_metrics
+        )
 
         line_chart_image = generate_line_chart(history_df)
 

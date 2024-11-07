@@ -148,6 +148,7 @@ def generate_line_chart(history_df):
     plt.close(fig)
     return encoded_image
 
+
 def generate_resource_dial_gauge(resource_type, metrics):
     console.log(f"[cyan]Generating dial gauge for {resource_type}...[/cyan]")
 
@@ -162,7 +163,9 @@ def generate_resource_dial_gauge(resource_type, metrics):
         requested = metrics["total_memory_requested_mib"]
         title = "Memory Usage"
     else:
-        console.log("[red]Invalid resource type specified. Use 'cpu' or 'memory'.[/red]")
+        console.log(
+            "[red]Invalid resource type specified. Use 'cpu' or 'memory'.[/red]"
+        )
         return ""
 
     # Calculate percentages
@@ -171,15 +174,21 @@ def generate_resource_dial_gauge(resource_type, metrics):
 
     # Log percentages before correction
     console.log(f"[yellow]Initial used percentage: {used_percentage}%[/yellow]")
-    console.log(f"[yellow]Initial requested percentage: {requested_percentage}%[/yellow]")
+    console.log(
+        f"[yellow]Initial requested percentage: {requested_percentage}%[/yellow]"
+    )
 
     # If any percentage is improbably low (< 1%), multiply by 100
     if used_percentage < 1:
-        console.log(f"[red]Used percentage too low, correcting: {used_percentage}% -> {used_percentage * 100}%[/red]")
+        console.log(
+            f"[red]Used percentage too low, correcting: {used_percentage}% -> {used_percentage * 100}%[/red]"
+        )
         used_percentage *= 100
 
     if requested_percentage < 1:
-        console.log(f"[red]Requested percentage too low, correcting: {requested_percentage}% -> {requested_percentage * 100}%[/red]")
+        console.log(
+            f"[red]Requested percentage too low, correcting: {requested_percentage}% -> {requested_percentage * 100}%[/red]"
+        )
         requested_percentage *= 100
 
     # Set up the plot as a semicircle
@@ -188,38 +197,89 @@ def generate_resource_dial_gauge(resource_type, metrics):
 
     # Set the background color to transparent
     fig.patch.set_alpha(0.0)
-    ax.set_facecolor('none')
+    ax.set_facecolor("none")
 
     # Plot requested percentage in blue (entire semicircle)
-    ax.fill_between(theta, 0, 1, where=(theta <= requested_percentage / 100 * np.pi), color='#90CAF9', edgecolor='black', linewidth=1.5, alpha=0.7, label='Requested')
+    ax.fill_between(
+        theta,
+        0,
+        1,
+        where=(theta <= requested_percentage / 100 * np.pi),
+        color="#90CAF9",
+        edgecolor="black",
+        linewidth=1.5,
+        alpha=0.7,
+        label="Requested",
+    )
 
     # Plot used percentage in green (covers up to used part)
-    ax.fill_between(theta, 0, 1, where=(theta <= used_percentage / 100 * np.pi), color='#4CAF50', edgecolor='black', linewidth=1.5, alpha=0.8, label='Used')
+    ax.fill_between(
+        theta,
+        0,
+        1,
+        where=(theta <= used_percentage / 100 * np.pi),
+        color="#4CAF50",
+        edgecolor="black",
+        linewidth=1.5,
+        alpha=0.8,
+        label="Used",
+    )
 
     # Complete the rest of the semicircle in white
-    ax.fill_between(theta, 0, 1, where=(theta > requested_percentage / 100 * np.pi), color='white', edgecolor='black', linewidth=1.5, alpha=0.5)
+    ax.fill_between(
+        theta,
+        0,
+        1,
+        where=(theta > requested_percentage / 100 * np.pi),
+        color="white",
+        edgecolor="black",
+        linewidth=1.5,
+        alpha=0.5,
+    )
 
     # Remove axes and ticks
-    ax.axis('off')
+    ax.axis("off")
 
     # Adjusted percentage labels
     # Add used percentage on the left side of the chart
-    ax.text(0.1*np.pi, 0.5, f'U:{used_percentage:.0f}%', ha='left', va='center', fontsize=24, color='black', weight='bold', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
+    ax.text(
+        0.1 * np.pi,
+        0.5,
+        f"U:{used_percentage:.0f}%",
+        ha="left",
+        va="center",
+        fontsize=24,
+        color="black",
+        weight="bold",
+        bbox=dict(facecolor="white", edgecolor="black", boxstyle="round,pad=0.5"),
+    )
 
     # Add requested percentage on the right side of the chart
-    ax.text(0.9 * np.pi, 0.5, f'R:{requested_percentage:.0f}%', ha='right', va='center', fontsize=24, color='black', weight='bold', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
+    ax.text(
+        0.9 * np.pi,
+        0.5,
+        f"R:{requested_percentage:.0f}%",
+        ha="right",
+        va="center",
+        fontsize=24,
+        color="black",
+        weight="bold",
+        bbox=dict(facecolor="white", edgecolor="black", boxstyle="round,pad=0.5"),
+    )
 
     # Add title below the gauge
-    ax.text(0, -0.3, title, ha='center', fontsize=16, color='black', weight='bold')
+    ax.text(0, -0.3, title, ha="center", fontsize=16, color="black", weight="bold")
 
     # Save the plot to a BytesIO buffer
     buf = BytesIO()
-    plt.savefig(buf, format='png', transparent=True)
+    plt.savefig(buf, format="png", transparent=True)
     buf.seek(0)
 
     # Encode the plot to base64
-    encoded_image = base64.b64encode(buf.read()).decode('utf-8')
+    encoded_image = base64.b64encode(buf.read()).decode("utf-8")
     plt.close(fig)
 
-    console.log(f"[green]Dial gauge for {resource_type} generated successfully.[/green]")
+    console.log(
+        f"[green]Dial gauge for {resource_type} generated successfully.[/green]"
+    )
     return encoded_image

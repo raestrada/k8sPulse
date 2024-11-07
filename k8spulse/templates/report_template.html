@@ -367,6 +367,10 @@
             <th>Recently Restarted</th>
             <th>Nodes with Issues</th>
             <th>Zombies</th>
+            <th>CPU Used (%)</th>
+            <th>CPU Requested (%)</th>
+            <th>Memory Used (%)</th>
+            <th>Memory Requested (%)</th>
         </tr>
         {% for row in history_data %}
             {% if row.total_deployments is number and row.total_deployments > 0 %}
@@ -390,10 +394,22 @@
                     </td>
                     <td>{{ row.nodes_with_issues | length }}</td>
                     <td>{{ row.zombie_processes | length }}</td>
+                    <td style="color: {% if row.cpu_used_percentage <= 50 %}#4CAF50{% elif row.cpu_used_percentage <= 80 %}#FFC107{% else %}#FF4444{% endif %};">
+                        {{ row.cpu_used_percentage | round(2) }}%
+                    </td>
+                    <td style="color: #4CAF50">
+                        {{ row.cpu_requested_percentage | round(2) }}%
+                    </td>
+                    <td style="color: {% if row.cpu_requested_percentage <= 50 %}#4CAF50{% elif row.cpu_requested_percentage <= 80 %}#FFC107{% else %}#FF4444{% endif %};">
+                        {{ row.memory_used_percentage | round(2) }}%
+                    </td>
+                    <td style="color: #4CAF50">
+                        {{ row.memory_requested_percentage | round(2) }}%
+                    </td>
                 </tr>
             {% else %}
                 <tr>
-                    <td colspan="9">Data unavailable for this entry.</td>
+                    <td colspan="13">Data unavailable for this entry.</td>
                 </tr>
             {% endif %}
         {% endfor %}
