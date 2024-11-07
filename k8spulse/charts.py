@@ -202,9 +202,12 @@ def generate_resource_dial_gauge(resource_type, metrics):
     # Remove axes and ticks
     ax.axis('off')
 
-    # Add percentage labels
-    ax.text(-np.pi / 2, 0.5, f'{used_percentage:.0f}%', ha='left', va='center', fontsize=30, color='black', weight='bold', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))  # Left-aligned, large font for used
-    ax.text(np.pi / 2, 0.5, f'{requested_percentage:.0f}%', ha='right', va='center', fontsize=30, color='black', weight='bold', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))  # Right-aligned, large font for requested
+    # Adjusted percentage labels
+    # Add used percentage on the left side of the chart
+    ax.text(0.1*np.pi, 0.5, f'U:{used_percentage:.0f}%', ha='left', va='center', fontsize=24, color='black', weight='bold', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
+
+    # Add requested percentage on the right side of the chart
+    ax.text(0.9 * np.pi, 0.5, f'R:{requested_percentage:.0f}%', ha='right', va='center', fontsize=24, color='black', weight='bold', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
 
     # Add title below the gauge
     ax.text(0, -0.3, title, ha='center', fontsize=16, color='black', weight='bold')

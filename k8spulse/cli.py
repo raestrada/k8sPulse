@@ -73,7 +73,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
         semaphore_statuses = get_semaphore_status()
 
         zombie_processes = detect_zombie_processes_in_pods() if zombies else []
-
+        resource_metrics =get_cluster_resource_metrics()
         # Save report history
         data = {
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -132,8 +132,8 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
             yellow_threshold=30,
         )
         
-        gauge_cluster_resource_metrics_cpu = generate_resource_dial_gauge("cpu", get_cluster_resource_metrics())
-        gauge_cluster_resource_metrics_memory = generate_resource_dial_gauge("memory", get_cluster_resource_metrics())
+        gauge_cluster_resource_metrics_cpu = generate_resource_dial_gauge("cpu", resource_metrics)
+        gauge_cluster_resource_metrics_memory = generate_resource_dial_gauge("memory", resource_metrics)
 
 
         line_chart_image = generate_line_chart(history_df)
