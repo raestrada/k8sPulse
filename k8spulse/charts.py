@@ -183,7 +183,7 @@ def generate_resource_dial_gauge(resource_type, metrics):
         requested_percentage *= 100
 
     # Set up the plot as a semicircle
-    fig, ax = plt.subplots(figsize=(8, 4))  # Wider plot for a horizontal semicircle
+    fig, ax = plt.subplots(figsize=(10, 5))  # Wider plot for a horizontal semicircle
     theta = np.linspace(0, np.pi, 100)  # Semicircle angles from 0 to pi
 
     # Set the background color to transparent
@@ -191,23 +191,23 @@ def generate_resource_dial_gauge(resource_type, metrics):
     ax.set_facecolor('none')
 
     # Plot requested percentage in blue (entire semicircle)
-    ax.fill_between(theta, 0, 1, where=(theta <= requested_percentage / 100 * np.pi), color='#90CAF9', edgecolor='black', linewidth=1.2, alpha=0.7, label='Requested')
+    ax.fill_between(theta, 0, 1, where=(theta <= requested_percentage / 100 * np.pi), color='#90CAF9', edgecolor='black', linewidth=1.5, alpha=0.7, label='Requested')
 
     # Plot used percentage in green (covers up to used part)
-    ax.fill_between(theta, 0, 1, where=(theta <= used_percentage / 100 * np.pi), color='#4CAF50', edgecolor='black', linewidth=1.2, alpha=0.8, label='Used')
+    ax.fill_between(theta, 0, 1, where=(theta <= used_percentage / 100 * np.pi), color='#4CAF50', edgecolor='black', linewidth=1.5, alpha=0.8, label='Used')
 
     # Complete the rest of the semicircle in white
-    ax.fill_between(theta, 0, 1, where=(theta > requested_percentage / 100 * np.pi), color='white', edgecolor='black', linewidth=1.2, alpha=0.5)
+    ax.fill_between(theta, 0, 1, where=(theta > requested_percentage / 100 * np.pi), color='white', edgecolor='black', linewidth=1.5, alpha=0.5)
 
     # Remove axes and ticks
     ax.axis('off')
 
     # Add percentage labels
-    ax.text(-np.pi / 2, 0.5, f'{used_percentage:.0f}%', ha='left', va='center', fontsize=24, color='black', weight='bold')  # Left-aligned, large font for used
-    ax.text(np.pi / 2, 0.5, f'{requested_percentage:.0f}%', ha='right', va='center', fontsize=24, color='black', weight='bold')  # Right-aligned, large font for requested
+    ax.text(-np.pi / 2, 0.5, f'{used_percentage:.0f}%', ha='left', va='center', fontsize=30, color='black', weight='bold', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))  # Left-aligned, large font for used
+    ax.text(np.pi / 2, 0.5, f'{requested_percentage:.0f}%', ha='right', va='center', fontsize=30, color='black', weight='bold', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))  # Right-aligned, large font for requested
 
     # Add title below the gauge
-    ax.text(0, -0.3, title, ha='center', fontsize=14, color='black', weight='bold')
+    ax.text(0, -0.3, title, ha='center', fontsize=16, color='black', weight='bold')
 
     # Save the plot to a BytesIO buffer
     buf = BytesIO()
