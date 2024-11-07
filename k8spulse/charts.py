@@ -2,6 +2,7 @@ import base64
 from io import BytesIO
 import matplotlib.pyplot as plt
 from matplotlib.patches import Wedge
+import numpy as np
 from rich.console import Console
 
 console = Console()
@@ -145,4 +146,77 @@ def generate_line_chart(history_df):
     buf.seek(0)
     encoded_image = base64.b64encode(buf.read()).decode("utf-8")
     plt.close(fig)
+    return encoded_image
+
+def generate_resource_dial_gauge(resource_type, metrics):
+    console.log(f"[cyan]Generating dial gauge for {resource_type}...[/cyan]")
+
+    if resource_type == "cpu":
+        total = metrics["total_cpu_capacity_mcores"]
+        used = metrics["total_cpu_used_mcores"]
+        requested = metrics["total_cpu_requested_mcores"]
+        title = "CPU Usage"
+    elif resource_type == "memory":
+        total = metrics["total_memory_capacity_mib"]
+        used = metrics["total_memory_used_mib"]
+        requested = metrics["total_memory_requested_mib"]
+        title = "Memory Usage"
+    else:
+        console.log("[red]Invalid resource type specified. Use 'cpu' or 'memory'.[/red]")
+        return ""
+
+    # Calculate percentages
+    used_percentage = (used / total) * 100
+    requested_percentage = (requested / total) * 100
+
+    # Log percentages before correction
+    console.log(f"[yellow]Initial used percentage: {used_percentage}%[/yellow]")
+    console.log(f"[yellow]Initial requested percentage: {requested_percentage}%[/yellow]")
+
+    # If any percentage is improbably low (< 1%), multiply by 100
+    if used_percentage < 1:
+        console.log(f"[red]Used percentage too low, correcting: {used_percentage}% -> {used_percentage * 100}%[/red]")
+        used_percentage *= 100
+
+    if requested_percentage < 1:
+        console.log(f"[red]Requested percentage too low, correcting: {requested_percentage}% -> {requested_percentage * 100}%[/red]")
+        requested_percentage *= 100
+
+    # Set up the plot as a semicircle
+    fig, ax = plt.subplots(figsize=(8, 4))  # Wider plot for a horizontal semicircle
+    theta = np.linspace(0, np.pi, 100)  # Semicircle angles from 0 to pi
+
+    # Set the background color to transparent
+    fig.patch.set_alpha(0.0)
+    ax.set_facecolor('none')
+
+    # Plot requested percentage in blue (entire semicircle)
+    ax.fill_between(theta, 0, 1, where=(theta <= requested_percentage / 100 * np.pi), color='#90CAF9', edgecolor='black', linewidth=1.2, alpha=0.7, label='Requested')
+
+    # Plot used percentage in green (covers up to used part)
+    ax.fill_between(theta, 0, 1, where=(theta <= used_percentage / 100 * np.pi), color='#4CAF50', edgecolor='black', linewidth=1.2, alpha=0.8, label='Used')
+
+    # Complete the rest of the semicircle in white
+    ax.fill_between(theta, 0, 1, where=(theta > requested_percentage / 100 * np.pi), color='white', edgecolor='black', linewidth=1.2, alpha=0.5)
+
+    # Remove axes and ticks
+    ax.axis('off')
+
+    # Add percentage labels
+    ax.text(-np.pi / 2, 0.5, f'{used_percentage:.0f}%', ha='left', va='center', fontsize=24, color='black', weight='bold')  # Left-aligned, large font for used
+    ax.text(np.pi / 2, 0.5, f'{requested_percentage:.0f}%', ha='right', va='center', fontsize=24, color='black', weight='bold')  # Right-aligned, large font for requested
+
+    # Add title below the gauge
+    ax.text(0, -0.3, title, ha='center', fontsize=14, color='black', weight='bold')
+
+    # Save the plot to a BytesIO buffer
+    buf = BytesIO()
+    plt.savefig(buf, format='png', transparent=True)
+    buf.seek(0)
+
+    # Encode the plot to base64
+    encoded_image = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close(fig)
+
+    console.log(f"[green]Dial gauge for {resource_type} generated successfully.[/green]")
     return encoded_image

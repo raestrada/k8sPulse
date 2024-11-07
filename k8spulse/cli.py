@@ -19,7 +19,7 @@ from k8spulse.detector.status import (
     get_unusual_events,
 )
 from k8spulse.detector.zombies import detect_zombie_processes_in_pods
-from k8spulse.charts import generate_dial_gauge_chart, generate_line_chart
+from k8spulse.charts import generate_dial_gauge_chart, generate_line_chart, generate_resource_dial_gauge
 from k8spulse.db import (
     generate_index_html,
     save_report_history,
@@ -28,6 +28,8 @@ from k8spulse.db import (
     prepare_history_data_for_template,
 )
 from k8spulse.openai_tools import get_openai_recommendation
+
+from k8spulse.detector.resources import get_cluster_resource_metrics
 
 console = Console()
 
@@ -128,7 +130,12 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
             direction="inverse",
             red_threshold=60,
             yellow_threshold=30,
-        )  # Placeholder
+        )
+        
+        gauge_cluster_resource_metrics_cpu = generate_resource_dial_gauge("cpu", get_cluster_resource_metrics())
+        gauge_cluster_resource_metrics_memory = generate_resource_dial_gauge("memory", get_cluster_resource_metrics())
+
+
         line_chart_image = generate_line_chart(history_df)
 
         if use_ai:
@@ -155,6 +162,8 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
             "gauge_chart_exact_replicas": gauge_chart_exact_replicas,
             "gauge_chart_crashloopbackoff": gauge_chart_crashloopbackoff,
             "gauge_chart_recently_restarted": gauge_chart_recently_restarted,
+            "gauge_cluster_resource_metrics_cpu": gauge_cluster_resource_metrics_cpu,
+            "gauge_cluster_resource_metrics_memory": gauge_cluster_resource_metrics_memory,
             "line_chart_image": line_chart_image,
             "use_ai": use_ai,
             "history_data": prepare_history_data_for_template(),

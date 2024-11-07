@@ -186,12 +186,36 @@
     </style>
 </head>
 <body>
-    <div class="logo">
-        <a href="https://raestrada.github.io/k8sPulse/">
-            <img src="https://res.cloudinary.com/dyknhuvxt/image/upload/v1730740391/k8spulse_axrf38.png" alt="k8spulse logo">
-        </a>
-    </div>
-    <h2>{{ env_name }} Statistics Report - {{ timestamp }}</h2>
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 40px;">
+        <!-- Logo and Report Title Container -->
+        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+            <div class="logo">
+                <a href="https://raestrada.github.io/k8sPulse/">
+                    <img src="https://res.cloudinary.com/dyknhuvxt/image/upload/v1730740391/k8spulse_axrf38.png" alt="k8spulse logo" style="width: 120px; height: auto;">
+                </a>
+            </div>
+            <div>
+                <h2 style="margin: 0; font-size: 1.8em;">{{ env_name }} Statistics Report - {{ timestamp }}</h2>
+            </div>
+        </div>
+    
+        <!-- CPU and Memory Gauges Container -->
+        <div style="display: flex; align-items: center; gap: 60px;">  <!-- Aumentar el gap para mayor separación -->
+            <!-- CPU Gauge -->
+            <div class="gauge-container" style="flex: 1;">
+                <img src="data:image/png;base64,{{ gauge_cluster_resource_metrics_cpu }}" alt="Cluster CPU Metrics" style="width: 200%; max-width: 600px;">
+                <div class="gauge-title" style="text-align: center; margin-top: 10px;">Cluster CPU Usage</div>
+            </div>
+            
+            <!-- Memory Gauge -->
+            <div class="gauge-container" style="flex: 1;">
+                <img src="data:image/png;base64,{{ gauge_cluster_resource_metrics_memory }}" alt="Cluster Memory Metrics" style="width: 200%; max-width: 600px;">
+                <div class="gauge-title" style="text-align: center; margin-top: 10px;">Cluster Memory Usage</div>
+            </div>
+        </div>
+    </div>    
+    
+        
     <div class="divider"></div>
 
     <!-- Semaphores and Gauges in the Same Row -->
