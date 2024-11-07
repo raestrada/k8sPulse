@@ -10,7 +10,7 @@
 
 [k8sPulse](https://raestrada.github.io/k8sPulse/) is an open-source monitoring tool for emergency scenarios, providing a quick Kubernetes cluster health overview when only `kubectl` is available. Leveraging the Python Kubernetes native client and OpenAI, it generates insightful and actionable recommendations to help resolve issues efficiently.
 
-![k8sPulse Screenshot](https://res.cloudinary.com/dyknhuvxt/image/upload/v1730915502/k8spulse-logo_cqu04v.png)
+![k8sPulse Screenshot](https://res.cloudinary.com/dyknhuvxt/image/upload/v1731006274/k8spulse-report_jylmf7.png)
 
 ---
 
