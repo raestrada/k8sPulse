@@ -3,6 +3,7 @@ import time
 import click
 from datetime import datetime
 from rich.console import Console
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import subprocess
 
 from k8spulse.detector.deployments import (
@@ -65,18 +66,46 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
 
     while True:
         console.log("[green]Starting Kubernetes monitoring cycle...[/green]")
-        total_deployments = get_deployments_count()
-        deployments_with_replicas = get_deployments_with_replicas()
-        deployments_with_zero_replicas = get_deployments_with_zero_replicas()
-        deployments_with_exact_replicas = get_deployments_with_exact_replicas()
-        deployments_with_recent_start = get_deployments_with_recent_restarts()
-        deployments_with_crashloopbackoff = get_deployments_with_crashloopbackoff()
-        nodes_with_issues = get_nodes_with_issues()
-        unusual_events = get_unusual_events()
-        semaphore_statuses = get_semaphore_status()
 
-        zombie_processes = detect_zombie_processes_in_pods() if zombies else []
-        resource_metrics = get_cluster_resource_metrics()
+        with ProcessPoolExecutor() as executor:
+            futures = {
+                executor.submit(get_deployments_count): "total_deployments",
+                executor.submit(get_deployments_with_replicas): "deployments_with_replicas",
+                executor.submit(get_deployments_with_zero_replicas): "deployments_with_zero_replicas",
+                executor.submit(get_deployments_with_exact_replicas): "deployments_with_exact_replicas",
+                executor.submit(get_deployments_with_recent_restarts): "deployments_with_recent_start",
+                executor.submit(get_deployments_with_crashloopbackoff): "deployments_with_crashloopbackoff",
+                executor.submit(get_nodes_with_issues): "nodes_with_issues",
+                executor.submit(get_unusual_events): "unusual_events",
+                executor.submit(get_semaphore_status): "semaphore_statuses",
+                executor.submit(get_cluster_resource_metrics): "resource_metrics",
+            }
+
+            # Only submit zombie process detection if 'zombies' is True
+            if zombies:
+                futures[executor.submit(detect_zombie_processes_in_pods)] = "zombie_processes"
+
+            # Collect results as they complete
+            results = {}
+            for future in as_completed(futures):
+                key = futures[future]
+                try:
+                    results[key] = future.result()
+                except Exception as e:
+                    console.log(f"[red]Error occurred while fetching {key}: {e}[/red]")
+
+        # Extract results
+        total_deployments = results.get("total_deployments", 0)
+        deployments_with_replicas = results.get("deployments_with_replicas", 0)
+        deployments_with_zero_replicas = results.get("deployments_with_zero_replicas", 0)
+        deployments_with_exact_replicas = results.get("deployments_with_exact_replicas", 0)
+        deployments_with_recent_start = results.get("deployments_with_recent_start", 0)
+        deployments_with_crashloopbackoff = results.get("deployments_with_crashloopbackoff", 0)
+        nodes_with_issues = results.get("nodes_with_issues", [])
+        unusual_events = results.get("unusual_events", [])
+        semaphore_statuses = results.get("semaphore_statuses", [])
+        zombie_processes = results.get("zombie_processes", []) if zombies else []
+        resource_metrics = results.get("resource_metrics", {})
 
         # Calculate and adjust percentages for CPU and memory
         cpu_used_percentage = (
