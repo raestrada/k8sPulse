@@ -70,21 +70,11 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
         with ProcessPoolExecutor() as executor:
             futures = {
                 executor.submit(get_deployments_count): "total_deployments",
-                executor.submit(
-                    get_deployments_with_replicas
-                ): "deployments_with_replicas",
-                executor.submit(
-                    get_deployments_with_zero_replicas
-                ): "deployments_with_zero_replicas",
-                executor.submit(
-                    get_deployments_with_exact_replicas
-                ): "deployments_with_exact_replicas",
-                executor.submit(
-                    get_deployments_with_recent_restarts
-                ): "deployments_with_recent_start",
-                executor.submit(
-                    get_deployments_with_crashloopbackoff
-                ): "deployments_with_crashloopbackoff",
+                executor.submit(get_deployments_with_replicas): "deployments_with_replicas",
+                executor.submit(get_deployments_with_zero_replicas): "deployments_with_zero_replicas",
+                executor.submit(get_deployments_with_exact_replicas): "deployments_with_exact_replicas",
+                executor.submit(get_deployments_with_recent_restarts): "deployments_with_recent_start",
+                executor.submit(get_deployments_with_crashloopbackoff): "deployments_with_crashloopbackoff",
                 executor.submit(get_nodes_with_issues): "nodes_with_issues",
                 executor.submit(get_unusual_events): "unusual_events",
                 executor.submit(get_semaphore_status): "semaphore_statuses",
@@ -93,9 +83,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
 
             # Only submit zombie process detection if 'zombies' is True
             if zombies:
-                futures[executor.submit(detect_zombie_processes_in_pods)] = (
-                    "zombie_processes"
-                )
+                futures[executor.submit(detect_zombie_processes_in_pods)] = "zombie_processes"
 
             # Collect results as they complete
             results = {}
@@ -109,16 +97,10 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
         # Extract results
         total_deployments = results.get("total_deployments", 0)
         deployments_with_replicas = results.get("deployments_with_replicas", 0)
-        deployments_with_zero_replicas = results.get(
-            "deployments_with_zero_replicas", 0
-        )
-        deployments_with_exact_replicas = results.get(
-            "deployments_with_exact_replicas", 0
-        )
+        deployments_with_zero_replicas = results.get("deployments_with_zero_replicas", 0)
+        deployments_with_exact_replicas = results.get("deployments_with_exact_replicas", 0)
         deployments_with_recent_start = results.get("deployments_with_recent_start", 0)
-        deployments_with_crashloopbackoff = results.get(
-            "deployments_with_crashloopbackoff", 0
-        )
+        deployments_with_crashloopbackoff = results.get("deployments_with_crashloopbackoff", 0)
         nodes_with_issues = results.get("nodes_with_issues", [])
         unusual_events = results.get("unusual_events", [])
         semaphore_statuses = results.get("semaphore_statuses", [])
@@ -181,93 +163,54 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
         history_df = load_report_history(as_dataframe=True)
 
         # Generate charts using dial gauges
-        # Generate charts using ProcessPoolExecutor
-        with ProcessPoolExecutor() as chart_executor:
-            chart_futures = {
-                chart_executor.submit(
-                    generate_dial_gauge_chart,
-                    deployments_with_replicas,
-                    "With Replicas",
-                    total_deployments,
-                    "direct",
-                    60,
-                    80,
-                ): "gauge_chart_deployments_with_replicas",
-                chart_executor.submit(
-                    generate_dial_gauge_chart,
-                    deployments_with_zero_replicas,
-                    "Zero Replicas",
-                    total_deployments,
-                    "inverse",
-                    70,
-                    50,
-                ): "gauge_chart_deployments_zero_replicas",
-                chart_executor.submit(
-                    generate_dial_gauge_chart,
-                    deployments_with_exact_replicas,
-                    "Exact Replicas",
-                    total_deployments,
-                    "direct",
-                    50,
-                    65,
-                ): "gauge_chart_exact_replicas",
-                chart_executor.submit(
-                    generate_dial_gauge_chart,
-                    deployments_with_crashloopbackoff,
-                    "CrashLoopBackOff",
-                    total_deployments,
-                    "inverse",
-                    50,
-                    30,
-                ): "gauge_chart_crashloopbackoff",
-                chart_executor.submit(
-                    generate_dial_gauge_chart,
-                    deployments_with_recent_start,
-                    "Restarted",
-                    total_deployments,
-                    "inverse",
-                    60,
-                    30,
-                ): "gauge_chart_recently_restarted",
-                chart_executor.submit(
-                    generate_resource_dial_gauge, "cpu", resource_metrics
-                ): "gauge_cluster_resource_metrics_cpu",
-                chart_executor.submit(
-                    generate_resource_dial_gauge, "memory", resource_metrics
-                ): "gauge_cluster_resource_metrics_memory",
-                chart_executor.submit(
-                    generate_line_chart, history_df
-                ): "line_chart_image",
-            }
+        gauge_chart_deployments_with_replicas = generate_dial_gauge_chart(
+            deployments_with_replicas,
+            "With Replicas",
+            max_value=total_deployments,
+            direction="direct",
+            red_threshold=60,
+            yellow_threshold=80,
+        )
+        gauge_chart_deployments_zero_replicas = generate_dial_gauge_chart(
+            deployments_with_zero_replicas,
+            "Zero Replicas",
+            max_value=total_deployments,
+            direction="inverse",
+            red_threshold=70,
+            yellow_threshold=50,
+        )
+        gauge_chart_exact_replicas = generate_dial_gauge_chart(
+            deployments_with_exact_replicas,
+            "Exact Replicas",
+            max_value=total_deployments,
+            direction="direct",
+            red_threshold=50,
+            yellow_threshold=65,
+        )  # Example calculation
+        gauge_chart_crashloopbackoff = generate_dial_gauge_chart(
+            deployments_with_crashloopbackoff,
+            "CrashLoopBackOff",
+            max_value=total_deployments,
+            direction="inverse",
+            red_threshold=50,
+            yellow_threshold=30,
+        )
+        gauge_chart_recently_restarted = generate_dial_gauge_chart(
+            deployments_with_recent_start,
+            "Restarted",
+            direction="inverse",
+            red_threshold=60,
+            yellow_threshold=30,
+        )
 
-            chart_results = {}
-            for future in as_completed(chart_futures):
-                key = chart_futures[future]
-                try:
-                    chart_results[key] = future.result()
-                except Exception as e:
-                    console.log(f"[red]Error generating {key}: {e}[/red]")
-                    chart_results[key] = None
+        gauge_cluster_resource_metrics_cpu = generate_resource_dial_gauge(
+            "cpu", resource_metrics
+        )
+        gauge_cluster_resource_metrics_memory = generate_resource_dial_gauge(
+            "memory", resource_metrics
+        )
 
-        # Unpack chart results
-        gauge_chart_deployments_with_replicas = chart_results.get(
-            "gauge_chart_deployments_with_replicas"
-        )
-        gauge_chart_deployments_zero_replicas = chart_results.get(
-            "gauge_chart_deployments_zero_replicas"
-        )
-        gauge_chart_exact_replicas = chart_results.get("gauge_chart_exact_replicas")
-        gauge_chart_crashloopbackoff = chart_results.get("gauge_chart_crashloopbackoff")
-        gauge_chart_recently_restarted = chart_results.get(
-            "gauge_chart_recently_restarted"
-        )
-        gauge_cluster_resource_metrics_cpu = chart_results.get(
-            "gauge_cluster_resource_metrics_cpu"
-        )
-        gauge_cluster_resource_metrics_memory = chart_results.get(
-            "gauge_cluster_resource_metrics_memory"
-        )
-        line_chart_image = chart_results.get("line_chart_image")
+        line_chart_image = generate_line_chart(history_df)
 
         if use_ai:
             # Generate recommendation using OpenAI
