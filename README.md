@@ -33,10 +33,10 @@
 To install **k8sPulse** using `pipx`, run:
 
 ```sh
-pipx install git+https://github.com/raestrada/k8sPulse.git@v0.5.0
+pipx install git+https://github.com/raestrada/k8sPulse.git@v0.6.0
 ```
 
-This command installs the latest tagged version (`v0.5.0`) of k8sPulse.
+This command installs the latest tagged version (`v0.6.0`) of k8sPulse.
 
 ### Installing pipx
 
@@ -138,6 +138,24 @@ To receive AI-powered recommendations for Kubernetes cluster health:
    ```
 
 3. Recommendations will be generated and included in the HTML report.
+
+### Configuring Cast.AI Events Tracking
+
+To enable tracking of Cast.AI events in your k8sPulse reports:
+
+1. Ensure you have a [CAST AI API key](https://console.cast.ai/) set as an environment variable:
+   
+   ```sh
+   export CAST_AI_API_KEY=your_cast_ai_api_key_here
+   ```
+
+2. Set the cluster ID you want to track by exporting it as an environment variable:
+   
+   ```sh
+   export CAST_AI_CLUSTER_ID=your_cluster_id_here
+   ```
+
+3. The Cast.AI events will be automatically included in your k8sPulse report, providing details about node additions, deletions, and autoscaler actions.
 
 ## Generating the HTML Report
 

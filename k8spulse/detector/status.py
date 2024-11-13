@@ -1,3 +1,5 @@
+import os
+import requests
 import yaml
 from collections import defaultdict
 from kubernetes import client, config
@@ -140,3 +142,54 @@ def get_semaphore_status():
         console.log("[red]Error fetching castai-cluster-controller status[/red]")
 
     return statuses
+
+def get_latest_cast_events(limit=50):
+    console.log("[cyan]Starting to fetch the latest Cast.AI events...[/cyan]")
+
+    # Get the API key and Cluster ID from environment variables
+    api_key = os.getenv("CAST_AI_API_KEY")
+    cluster_id = os.getenv("CAST_AI_CLUSTER_ID")
+
+    # Check if the API key is available
+    if not api_key:
+        console.log("[red]The environment variable 'CAST_AI_API_KEY' is not set. Aborting request.[/red]")
+        raise ValueError("The environment variable 'CAST_AI_API_KEY' is not set.")
+    
+    # Check if the Cluster ID is available
+    if not cluster_id:
+        console.log("[red]The environment variable 'CAST_AI_CLUSTER_ID' is not set. Aborting request.[/red]")
+        raise ValueError("The environment variable 'CAST_AI_CLUSTER_ID' is not set.")
+
+    console.log(f"[green]Using cluster ID: {cluster_id}[/green]")
+
+    # Construct the API URL
+    url = f"https://api.cast.ai/v1/audit?page.limit={limit}&clusterId={cluster_id}"
+    console.log(f"[blue]Constructed URL: {url}[/blue]")
+
+    headers = {
+        "accept": "application/json",
+        "X-API-Key": api_key,
+    }
+    
+    console.log("[cyan]Sending GET request to Cast.AI API...[/cyan]")
+
+    try:
+        # Make the request
+        response = requests.get(url, headers=headers)
+
+        # Log the response status code
+        console.log(f"[yellow]Response status code: {response.status_code}[/yellow]")
+
+        # Raise an HTTPError if the status code indicates an error
+        response.raise_for_status()
+
+        # Parse the response
+        cast_events = response.json().get("items", [])
+        
+        # Log the number of events fetched
+        console.log(f"[green]Successfully fetched {len(cast_events)} Cast.AI events.[/green]")
+
+        return cast_events
+    except requests.exceptions.RequestException as e:
+        console.log(f"[red]Error fetching Cast.AI events: {e}[/red]")
+        return []

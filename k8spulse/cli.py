@@ -18,6 +18,7 @@ from k8spulse.detector.status import (
     get_nodes_with_issues,
     get_semaphore_status,
     get_unusual_events,
+    get_latest_cast_events,
 )
 from k8spulse.detector.zombies import detect_zombie_processes_in_pods
 from k8spulse.charts import (
@@ -79,6 +80,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
                 executor.submit(get_unusual_events): "unusual_events",
                 executor.submit(get_semaphore_status): "semaphore_statuses",
                 executor.submit(get_cluster_resource_metrics): "resource_metrics",
+                executor.submit(get_latest_cast_events): "cast_events",
             }
 
             # Only submit zombie process detection if 'zombies' is True
@@ -106,6 +108,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
         semaphore_statuses = results.get("semaphore_statuses", [])
         zombie_processes = results.get("zombie_processes", []) if zombies else []
         resource_metrics = results.get("resource_metrics", {})
+        cast_events = results.get("cast_events", {})
 
         # Calculate and adjust percentages for CPU and memory
         cpu_used_percentage = (
@@ -155,6 +158,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
             "cpu_requested_percentage": cpu_requested_percentage,
             "memory_used_percentage": memory_used_percentage,
             "memory_requested_percentage": memory_requested_percentage,
+            "cast_events": cast_events,
         }
 
         save_report_history(data)
@@ -244,6 +248,7 @@ def cli(env_name, interval, use_ai, git_commit, gpt_model, zombies):
             "openai_recommendation": recommendation,
             "zombies": zombies,
             "zombies_processes": zombie_processes,
+            "cast_events": cast_events,
         }
 
         # Generate HTML report

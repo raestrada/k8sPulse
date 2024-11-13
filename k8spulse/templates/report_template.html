@@ -183,6 +183,7 @@
             max-height: 200px;
             font-family: 'Courier New', monospace;
         }
+
     </style>
 </head>
 <body>
@@ -344,6 +345,45 @@
                 {% endif %}
             </div>
         {% endif %}
+        
+        <!-- Cast.AI Events -->
+        <div class="events">
+            <h3>Cast.AI Events</h3>
+            {% if cast_events %}
+                {% for cast_event in cast_events %}
+                    <div class="event">
+                        <strong>Event Type:</strong> {{ cast_event.eventType }}<br>
+                        <strong>Initiated By:</strong> {{ cast_event.initiatedBy.id }}<br>
+                        <strong>Time:</strong> {{ cast_event.time }}<br>
+
+                        {% if cast_event.event.node %}
+                            <strong>Node Name:</strong> {{ cast_event.event.node.name }}<br>
+                            <strong>Instance Type:</strong> {{ cast_event.event.node.instanceType }}<br>
+                            <strong>Zone:</strong> {{ cast_event.event.node.zone }}<br>
+                        {% endif %}
+
+                        {% if cast_event.event.ops %}
+                            {% for op in cast_event.event.ops %}
+                                <strong>Operation Description:</strong> {{ op.description }}<br>
+                                <strong>Effect:</strong> {{ op.effect }}<br>
+                            {% endfor %}
+                        {% endif %}
+
+                        {% if cast_event.event.trigger and cast_event.event.trigger.unschedulablePods %}
+                            <div class="event-error">
+                                <strong>Unschedulable Pods:</strong><br>
+                                {% for pod in cast_event.event.trigger.unschedulablePods %}
+                                    - <strong>Pod Name:</strong> {{ pod.name }} in <strong>Namespace:</strong> {{ pod.namespace }}<br>
+                                    <strong>Reason:</strong> {{ pod.unschedulableReason }}<br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="event">No recent Cast.AI events found.</div>
+            {% endif %}
+        </div>
     </div>
 
     <div class="divider"></div>
