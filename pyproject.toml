@@ -4,6 +4,7 @@ version = "v0.6.0"
 description = "Kubernetes emergency monitoring tool for generating health reports and insights."
 authors = ["Rodrigo Estrada <rodrigo.estrada@gmail.com>"]
 
+
 [tool.poetry.dependencies]
 python = ">=3.10"
 jinja2 = ">=3.0"
@@ -14,6 +15,7 @@ click = ">=8.0"
 kubernetes-client = "^0.1.8"
 rich = "^13.9.4"
 pony = "^0.7.19"
+numpy = "^2.1.3"
 
 [tool.poetry.scripts]
 k8spulse = "k8spulse.cli:cli"

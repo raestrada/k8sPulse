@@ -3,10 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="k8sPulse: An open-source Kubernetes monitoring tool for emergency scenarios, leveraging kubectl access, OpenAI recommendations, and the Python Kubernetes native client.">
-    <meta name="keywords" content="Kubernetes, Monitoring, Open Source, k8s, OpenAI, Python, Emergency Monitoring">
-    <meta name="author" content="k8sPulse Contributors">
-    <title>k8sPulse - Open Source Kubernetes Monitoring</title>
+    <title>k8spulse Dashboard - Overview</title>
     <link rel="icon" href="https://res.cloudinary.com/dyknhuvxt/image/upload/c_thumb,w_200,g_face/v1730740391/k8spulse_axrf38.png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -16,10 +13,8 @@
             background-size: 300% 300%;
             animation: backgroundAnimation 12s ease infinite;
             color: #ffffff;
-            margin: 0;
             padding: 20px;
-            line-height: 1.6;
-            overflow-x: hidden;
+            margin: 0;
         }
 
         @keyframes backgroundAnimation {
@@ -31,189 +26,89 @@
         header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding-bottom: 20px;
-            margin-bottom: 40px;
-            position: relative;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
             gap: 15px;
+            margin-bottom: 30px;
+            justify-content: center;
         }
-
-        .logo img {
-            width: 80px;
-            height: auto;
+        header img {
+            width: auto;
+            height: 80px;
         }
-
-        .logo h1 {
+        header h1 {
             color: #ffffff;
             font-size: 2.5em;
-            margin: 0;
-            font-weight: 800;
+            font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
-
-        .links {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .doc-link {
-            text-decoration: none;
-            background-color: #2563eb;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: background-color 0.3s ease, transform 0.3s ease;
-        }
-        .doc-link:hover {
-            background-color: #1d4ed8;
-            transform: translateY(-4px);
-        }
-
-        .github-link {
-            text-decoration: none;
-            background-color: #0f766e;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: background-color 0.3s ease, transform 0.3s ease;
-        }
-        .github-link:hover {
-            background-color: #0d5e59;
-            transform: translateY(-4px);
-        }
-
-        .release-link {
-            text-decoration: none;
-            background-color: #f97316;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: background-color 0.3s ease, transform 0.3s ease;
-        }
-        .release-link:hover {
-            background-color: #ea580c;
-            transform: translateY(-4px);
-        }
-
-        .content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 20px;
-            margin: 20px 0;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-            border-radius: 12px;
-            width: 80%;
+        .description {
             max-width: 800px;
-            text-align: center;
+            line-height: 1.6;
+            font-size: 1.2em;
+            margin-bottom: 40px;
+            color: #ffffff;
         }
-
-        .card h2, .card h3 {
-            font-weight: 800;
+        .description a {
+            color: #f97316;
+            text-decoration: none;
+            font-weight: bold;
         }
-
-        .screenshot {
-            text-align: center;
-            margin: 40px 0;
+        .description a:hover {
+            text-decoration: underline;
         }
-
-        .screenshot img {
-            max-width: 100%;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-            transform: scale(1);
-            transition: transform 0.3s ease-in-out;
-        }
-
-        .screenshot img:hover {
-            transform: scale(1.05);
-        }
-
-        .footer-line {
+        .divider {
             width: 100%;
             height: 4px;
             background: linear-gradient(to right, #f97316, #0f766e, #3b82f6);
             animation: backgroundAnimation 8s ease-in-out infinite;
-            margin-top: 20px;
+            margin: 40px 0;
         }
-
-        footer {
-            text-align: center;
-            margin-top: 40px;
-            color: #cbd5e1;
+        .reports {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-
-        code {
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 8px 10px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            color: #f97316;
+        .report-link {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+        .report-link:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-4px);
+        }
+        .report-link a {
+            text-decoration: none;
+            color: #ffffff;
             font-weight: bold;
+            font-size: 1.2em;
         }
     </style>
 </head>
 <body>
     <header>
-        <div class="logo">
+        <a href="https://raestrada.github.io/k8sPulse/">
             <img src="https://res.cloudinary.com/dyknhuvxt/image/upload/v1730740391/k8spulse_axrf38.png" alt="k8spulse logo">
-            <h1>k8sPulse</h1>
-        </div>
-        <div class="links">
-            <a class="doc-link" href="docs.html" target="_blank">Documentation</a>
-            <a class="release-link" href="https://github.com/raestrada/k8sPulse/releases/tag/v0.6.0" target="_blank">Release v0.6.0</a>
-            <a class="github-link" href="https://github.com/raestrada/k8sPulse" target="_blank">GitHub Repository</a>
-        </div>
+        </a>
+        <h1>k8spulse Dashboard</h1>
     </header>
 
-    <div class="content">
-        <div class="card">
-            <h2>Emergency Kubernetes Monitoring with AI Recommendations</h2>
-            <p>k8sPulse is an open-source Kubernetes monitoring tool designed for those critical moments when you only have <code>kubectl</code> access. It leverages the Python Kubernetes native client and integrates with OpenAI for intelligent recommendations. Whether it's identifying problematic deployments, spotting pods in CrashLoopBackOff, or simply getting insights from a metrics server failure, k8sPulse is here to help.</p>
-        </div>
-
-        <div class="card">
-            <h3>Quick Installation Guide</h3>
-            <p>To install <strong>k8sPulse</strong> using <code>pipx</code>, simply run the following command:</p>
-            <code>pipx install git+https://github.com/raestrada/k8sPulse.git@v0.6.0</code>
-        </div>
-
-        <div class="footer-line"></div>
-
-        <div class="screenshot">
-            <h3>See k8sPulse in Action</h3>
-            <img src="https://res.cloudinary.com/dyknhuvxt/image/upload/v1731006274/k8spulse-report_jylmf7.png" alt="k8sPulse Dashboard Screenshot">
-        </div>
-
-        <div class="card">
-            <h3>Key Features</h3>
-                <strong>OpenAI Recommendations:</strong> Get actionable recommendations on how to improve your cluster's health.
-                <strong>Native Kubernetes Client:</strong> Uses Python's official Kubernetes client for seamless integration.
-                <strong>Modern UI:</strong> Sleek and informative interface to easily visualize key metrics and identify issues.
-        </div>
-
-        <div class="card">
-            <h3>Documentation</h3>
-            <p>To learn more about how to use <strong>k8sPulse</strong>, visit the <a href="docs.html">documentation page</a>.</p>
-        </div>
+    <div class="description">
+        Welcome to the <strong>k8spulse Dashboard</strong>! This page provides an overview of Kubernetes cluster health and performance reports. Below, you can find a list of generated reports for different environments. Each report provides in-depth information about deployments, pods, node health, and other critical cluster metrics. Click on any report to view its detailed statistics.
+        <br><br>
+        Interested in knowing more about k8spulse? Visit our <a href="https://raestrada.github.io/k8sPulse/" target="_blank">official site</a> to discover how k8spulse can empower your Kubernetes monitoring needs with smart and effective tools.
     </div>
 
-    <footer>
-        <div class="footer-line"></div>
-        <p>Contribute on <a href="https://github.com/raestrada/k8sPulse" target="_blank">GitHub</a> - Open Source for the community</p>
-    </footer>
+    <div class="divider"></div>
+
+    <div class="reports">
+        <!-- The list of generated reports will be inserted here -->
+        
+        <div class="report-link">
+            <a href=""> Statistics Report - </a>
+        </div>
+        
+    </div>
 </body>
 </html>

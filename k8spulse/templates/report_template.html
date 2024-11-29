@@ -274,6 +274,14 @@
         </div>
     </div>
 
+    <!-- Node Pool Summary -->
+    <div class="node-pool-summary" style="margin-top: 15px;">
+        <strong>Node Pool Summary:</strong>
+        {% for node_pool, deployments in node_pool_summary.deployments_per_node_pool.items() %}
+            <span style="margin-right: 20px;"><strong>{{ node_pool }}:</strong> <span style="color: #007bff;">{{ deployments }} deployments</span>, <span style="color: #006400;">{{ node_pool_summary.pods_per_node_pool.get(node_pool, 0) }} pods</span></span>
+        {% endfor %}
+    </div>
+
     <!-- Optional OpenAI Recommendation -->
     {% if use_ai and openai_recommendation %}
         <div class="divider"></div>
