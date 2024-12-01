@@ -162,11 +162,20 @@ def get_deployments_with_crashloopbackoff():
 
     return count
 
-# Function to gather deployments and pods by node pool using pandas and enhanced prefix analysis
+# Function to gather deployments and pods by node pool using pandas and enhanced dynamic prefix analysis
+import re
+import pandas as pd
+from collections import defaultdict
+from difflib import SequenceMatcher
+from kubernetes import client
+from rich.console import Console
+
+console = Console()
+core_v1 = client.CoreV1Api()
+apps_v1 = client.AppsV1Api()
+
 def get_node_pool_summary():
     console.log("[cyan]Fetching node pool summary...[/cyan]")
-    core_v1 = client.CoreV1Api()
-    apps_v1 = client.AppsV1Api()
 
     # Get all nodes
     nodes = core_v1.list_node()
@@ -175,47 +184,39 @@ def get_node_pool_summary():
     # Create a DataFrame to store node names
     node_df = pd.DataFrame(node_names, columns=["node_name"])
 
-    # Generate candidate prefixes dynamically based on common parts
-    def get_longest_common_prefix(names):
-        """Find the longest common prefix for a list of strings."""
-        if not names:
-            return ""
-        prefix = names[0]
-        for name in names[1:]:
-            matcher = SequenceMatcher(None, prefix, name)
-            match = matcher.find_longest_match(0, len(prefix), 0, len(name))
-            prefix = prefix[match.a:match.a + match.size]
-            if not prefix:
-                break
-        return prefix
-
-    # Extract prefixes dynamically
-    prefixes = []
-    for name in node_names:
-        # Extract parts split by `-` or `_` and try to avoid hash-like sequences
+    # Extract candidate prefixes from node names
+    def extract_candidate_prefixes(name):
+        """Extract possible prefixes by splitting by `-` or `_` and filtering out hash-like sequences."""
         parts = re.split(r'[-_]', name)
         filtered_parts = [part for part in parts if not re.match(r'^[a-f0-9]{6,}$', part)]
-        prefix = "-".join(filtered_parts)
-        prefixes.append(prefix)
+        return ["-".join(filtered_parts[:i+1]) for i in range(len(filtered_parts))]
 
-    node_df["prefix_candidate"] = prefixes
+    # Generate all candidate prefixes for each node and create a flat list
+    all_prefixes = []
+    for name in node_names:
+        all_prefixes.extend(extract_candidate_prefixes(name))
 
-    # Use pandas to determine the most frequent valid prefix patterns
-    prefix_groups = node_df.groupby("prefix_candidate").size().reset_index(name="count")
-    prefix_groups = prefix_groups.sort_values(by="count", ascending=False)
+    # Create a DataFrame with prefix counts
+    prefix_df = pd.DataFrame(all_prefixes, columns=["prefix"])
+    prefix_counts = prefix_df["prefix"].value_counts().reset_index()
+    prefix_counts.columns = ["prefix", "count"]
 
-    # Determine the threshold for what counts as a valid prefix
-    tolerance = max(2, len(node_names) * 0.01)  # At least 1% of nodes or minimum 2 occurrences to consider a prefix valid
-    valid_prefixes = prefix_groups[prefix_groups["count"] >= tolerance]["prefix_candidate"].tolist()
+    # Set a tolerance to consider a prefix as valid (at least 2 occurrences or 1% of nodes)
+    tolerance = max(2, len(node_names) * 0.01)
+    valid_prefixes = prefix_counts[prefix_counts["count"] >= tolerance]["prefix"].tolist()
 
-    # Assign the most common valid prefix to each node
+    # Assign the most appropriate valid prefix to each node
     node_pools = {}
     for _, row in node_df.iterrows():
-        prefix = row["prefix_candidate"]
-        if prefix in valid_prefixes:
-            node_pools[row["node_name"]] = prefix
-        else:
-            node_pools[row["node_name"]] = "unknown"
+        name = row["node_name"]
+        candidate_prefixes = extract_candidate_prefixes(name)
+        # Find the longest valid prefix from the candidates
+        assigned_prefix = "unknown"
+        for prefix in sorted(candidate_prefixes, key=len, reverse=True):
+            if prefix in valid_prefixes:
+                assigned_prefix = prefix
+                break
+        node_pools[name] = assigned_prefix
 
     # Initialize dictionaries to store deployment and pod counts per node pool
     deployments_per_node_pool = defaultdict(int)

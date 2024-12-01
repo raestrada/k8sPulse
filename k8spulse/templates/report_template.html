@@ -275,12 +275,19 @@
     </div>
 
     <!-- Node Pool Summary -->
-    <div class="node-pool-summary" style="margin-top: 15px;">
-        <strong>Node Pool Summary:</strong>
-        {% for node_pool, deployments in node_pool_summary.deployments_per_node_pool.items() %}
-            <span style="margin-right: 20px;"><strong>{{ node_pool }}:</strong> <span style="color: #007bff;">{{ deployments }} deployments</span>, <span style="color: #006400;">{{ node_pool_summary.pods_per_node_pool.get(node_pool, 0) }} pods</span></span>
-        {% endfor %}
-    </div>
+    <center>
+        <div class="node-pool-summary" style="margin-top: 15px; background-color: #f4f4f4; padding: 10px; border-radius: 10px; text-align: center; display: inline-block;">
+            <strong style="font-size: 1.2em; color: #333;">Node Pool Summary:</strong>
+            <div style="display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 10px;">
+                {% for node_pool, deployments in node_pool_summary.deployments_per_node_pool.items() %}
+                    <span style="font-weight: bold; margin-right: 20px; color: #333;">
+                        {{ node_pool }}: <span style="color: #007bff;">{{ deployments }} deployments</span>, <span style="color: #006400;">{{ node_pool_summary.pods_per_node_pool.get(node_pool, 0) }} pods</span>
+                    </span>
+                {% endfor %}
+            </div>
+        </div>
+    </center>
+
 
     <!-- Optional OpenAI Recommendation -->
     {% if use_ai and openai_recommendation %}

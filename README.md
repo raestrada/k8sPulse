@@ -33,10 +33,10 @@
 To install **k8sPulse** using `pipx`, run:
 
 ```sh
-pipx install git+https://github.com/raestrada/k8sPulse.git@v0.6.0
+pipx install git+https://github.com/raestrada/k8sPulse.git@v0.7.0
 ```
 
-This command installs the latest tagged version (`v0.6.0`) of k8sPulse.
+This command installs the latest tagged version (`v0.7.0`) of k8sPulse.
 
 ### Installing pipx
 
